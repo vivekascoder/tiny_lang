@@ -3,11 +3,20 @@ pub enum TokenType {
     EOF,
     Identifier(String),
     Number(usize),
+    Boolean(bool),
     Colon,
     SemiColon,
-    // Operator
+
+    // Operators
     Equal,
     Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Mod,
+
+    // Keywords
+    KeywordLet,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,12 +66,15 @@ impl Tokenizer {
         }
     }
 
+    fn parse_keyword(&self, s: &str) -> Option<TokenType> {
+        match s {
+            "let" => Some(TokenType::KeywordLet),
+            _ => None,
+        }
+    }
+
     pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = vec![];
-
-        // Trim whitespace first
-        self.trim_whitespace();
-
         loop {
             if self.cur == self.source.len() {
                 break;
@@ -71,6 +83,10 @@ impl Tokenizer {
             println!("{:?}", self.source[self.cur]);
 
             match self.source[self.cur] {
+                ';' => {
+                    tokens.push(self.token(TokenType::SemiColon, (self.cur, self.cur + 1)));
+                    self.cur += 1;
+                }
                 ':' => {
                     tokens.push(self.token(TokenType::Colon, (self.cur, self.cur + 1)));
                     self.cur += 1;
@@ -83,8 +99,20 @@ impl Tokenizer {
                     tokens.push(self.token(TokenType::Plus, (self.cur, self.cur + 1)));
                     self.cur += 1;
                 }
-                ';' => {
-                    tokens.push(self.token(TokenType::SemiColon, (self.cur, self.cur + 1)));
+                '-' => {
+                    tokens.push(self.token(TokenType::Minus, (self.cur, self.cur + 1)));
+                    self.cur += 1;
+                }
+                '*' => {
+                    tokens.push(self.token(TokenType::Multiply, (self.cur, self.cur + 1)));
+                    self.cur += 1;
+                }
+                '/' => {
+                    tokens.push(self.token(TokenType::Divide, (self.cur, self.cur + 1)));
+                    self.cur += 1;
+                }
+                '%' => {
+                    tokens.push(self.token(TokenType::Mod, (self.cur, self.cur + 1)));
                     self.cur += 1;
                 }
                 'a'..='z' | 'A'..='Z' | '_' => {
@@ -100,12 +128,19 @@ impl Tokenizer {
                             }
 
                             // Encountered something else
+                            // Then it could be either identifier or keyword.
                             _ => {
                                 let slice = &self.source[start..self.cur];
-                                tokens.push(self.token(
-                                    TokenType::Identifier(slice.iter().collect()),
-                                    (start, self.cur),
-                                ));
+                                let identifier: String = slice.iter().collect();
+
+                                if let Some(keyword) = self.parse_keyword(&identifier) {
+                                    tokens.push(self.token(keyword, (start, self.cur)));
+                                } else {
+                                    tokens.push(self.token(
+                                        TokenType::Identifier(identifier),
+                                        (start, self.cur),
+                                    ));
+                                }
                                 break;
                             }
                         }
@@ -139,27 +174,35 @@ impl Tokenizer {
                 ' ' | '\t' | '\n' | '\r' => {
                     self.cur += 1;
                 }
-                _ => unreachable!(),
+
+                _ => {
+                    unreachable!("With: {:?}", self.source[self.cur])
+                }
             }
         }
+
+        // Finally return the tokens
         tokens
     }
 }
 
 #[cfg(test)]
 pub mod tests {
+    use super::TokenType::*;
     use super::*;
 
     #[test]
     fn test_parsing_let_syntax() {
         let source = "let some_var: number = 345 + 35353;";
         let mut tokenizer = Tokenizer::new(source);
-        // println!("{:?}", tokenizer.tokenize());
+        let tokens = tokenizer.tokenize();
+        println!("tokens: {:?}", &tokens);
+
         assert_eq!(
-            tokenizer.tokenize(),
+            tokens,
             vec![
                 Token {
-                    type_: TokenType::Identifier(format!("let")),
+                    type_: KeywordLet,
                     pos: (0, 3)
                 },
                 Token {
