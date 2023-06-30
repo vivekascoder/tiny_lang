@@ -2,7 +2,7 @@
 pub enum TokenType {
     EOF,
     Identifier(String),
-    Number(usize),
+    Usize(usize),
     Boolean(bool),
     Colon,
     SemiColon,
@@ -17,11 +17,12 @@ pub enum TokenType {
 
     // Keywords
     KeywordLet,
+    KeywordUsize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
-    type_: TokenType,
+    pub type_: TokenType,
     pos: (usize, usize),
 }
 
@@ -32,7 +33,7 @@ impl Token {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Tokenizer {
+pub struct Tokenizer {
     // To track the current index at the string
     cur: usize,
     source: Vec<char>,
@@ -49,21 +50,6 @@ impl Tokenizer {
 
     fn token(&self, type_: TokenType, pos: (usize, usize)) -> Token {
         Token::new(type_, pos)
-    }
-
-    fn trim_whitespace(&mut self) {
-        let mut pos = 0;
-        loop {
-            if pos == self.source.len() {
-                break;
-            }
-
-            // match self.source[self.cur] {
-            //     ' ' =>
-            // }
-
-            pos += 1;
-        }
     }
 
     fn parse_keyword(&self, s: &str) -> Option<TokenType> {
@@ -163,7 +149,7 @@ impl Tokenizer {
                                     s_no.iter().collect::<String>().parse().unwrap();
 
                                 tokens
-                                    .push(self.token(TokenType::Number(number), (start, self.cur)));
+                                    .push(self.token(TokenType::Usize(number), (start, self.cur)));
                                 break;
                             }
                         }
@@ -193,7 +179,7 @@ pub mod tests {
 
     #[test]
     fn test_parsing_let_syntax() {
-        let source = "let some_var: number = 345 + 35353;";
+        let source = "let some_var: usize = 345 + 35353;";
         let mut tokenizer = Tokenizer::new(source);
         let tokens = tokenizer.tokenize();
         println!("tokens: {:?}", &tokens);
@@ -215,7 +201,7 @@ pub mod tests {
                     pos: (12, 13)
                 },
                 Token {
-                    type_: TokenType::Identifier(format!("number")),
+                    type_: KeywordUsize,
                     pos: (14, 20)
                 },
                 Token {
@@ -223,7 +209,7 @@ pub mod tests {
                     pos: (21, 22)
                 },
                 Token {
-                    type_: TokenType::Number(345),
+                    type_: TokenType::Usize(345),
                     pos: (23, 26)
                 },
                 Token {
@@ -231,7 +217,49 @@ pub mod tests {
                     pos: (27, 28)
                 },
                 Token {
-                    type_: TokenType::Number(35353),
+                    type_: TokenType::Usize(35353),
+                    pos: (29, 34)
+                },
+                Token {
+                    type_: TokenType::SemiColon,
+                    pos: (34, 35)
+                }
+            ]
+        );
+    }
+
+    fn test_parsing_let_without_type() {
+        let source = "let some_var = 345 + 35353;";
+        let mut tokenizer = Tokenizer::new(source);
+        let tokens = tokenizer.tokenize();
+        println!("tokens: {:?}", &tokens);
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    type_: KeywordLet,
+                    pos: (0, 3)
+                },
+                Token {
+                    type_: TokenType::Identifier(format!("some_var")),
+
+                    pos: (4, 12)
+                },
+                Token {
+                    type_: TokenType::Equal,
+                    pos: (21, 22)
+                },
+                Token {
+                    type_: TokenType::Usize(345),
+                    pos: (23, 26)
+                },
+                Token {
+                    type_: TokenType::Plus,
+                    pos: (27, 28)
+                },
+                Token {
+                    type_: TokenType::Usize(35353),
                     pos: (29, 34)
                 },
                 Token {
