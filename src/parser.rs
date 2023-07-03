@@ -11,12 +11,15 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(source: &str) -> Self {
-        Self {
+        let mut parser = Self {
             lexer: Lexer::new(source),
             current_token: TokenType::EOF,
             next_token: TokenType::EOF,
             errors: vec![],
-        }
+        };
+        parser.bump();
+        parser.bump();
+        parser
     }
 
     fn bump(&mut self) -> Result<()> {
@@ -45,6 +48,9 @@ impl Parser {
 
     fn next_token_is(&self, token: &TokenType) -> bool {
         self.next_token == *token
+    }
+    fn current_token_is(&self, token: &TokenType) -> bool {
+        self.current_token == *token
     }
 
     fn parse_let_statement(&mut self) -> Result<Statement> {
@@ -78,6 +84,7 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement> {
+        println!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token {
             TokenType::KeywordLet => self.parse_let_statement()?,
             // leave the rest for now.
@@ -169,23 +176,22 @@ impl Parser {
     }
 
     /// main function to parse a lexer.
-    pub fn parse(&self) {
-        let program: Program = vec![];
-        loop {
-            // if self.cur == self.lexer.len() {
-            //     break;
-            // }
-
-            // // Recursive descennt parser
-            // match self.lexer[self.cur].type_ {
-            //     TokenType::KeywordLet => {
-            //         // Parse let statement
-            //     }
-            //     _ => {
-            //         todo!("Hmm")
-            //     }
-            // }
+    pub fn parse(&mut self) -> Result<Program> {
+        let mut program: Program = vec![];
+        while !self.current_token_is(&TokenType::EOF) {
+            match self.parse_statement() {
+                Ok(stmt) => {
+                    program.push(stmt);
+                }
+                Err(_) => {
+                    panic!("That's it");
+                }
+            }
+            if let Err(e) = self.bump() {
+                bail!("lexer error with {:?}", e)
+            }
         }
+        Ok(program)
     }
 }
 #[cfg(test)]
@@ -193,5 +199,9 @@ pub mod tests {
     use super::*;
 
     #[test]
-    fn test_let_statement_parsing() {}
+    fn test_let_statement_parsing() {
+        let code = "let something = 454;";
+        let mut parser = Parser::new(code);
+        println!("Parsed statements: {:?}", parser.parse());
+    }
 }
