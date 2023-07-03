@@ -16,6 +16,13 @@ pub enum TokenType {
     Multiply,
     Divide,
     Mod,
+    NotEqual,
+    LessThan,
+    LessThanEqual,
+    GreaterThan,
+    GreaterThanEqual,
+    Lbracket,
+    Lparen,
 
     // Keywords
     KeywordLet,
@@ -35,14 +42,14 @@ impl Token {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Tokenizer {
+pub struct Lexer {
     // To track the current index at the string
     cur: usize,
     source: Vec<char>,
 }
 
 /// Parse `let var1: number = 34 + 353;`
-impl Tokenizer {
+impl Lexer {
     pub fn new(s: &str) -> Self {
         Self {
             cur: 0,
@@ -76,10 +83,9 @@ impl Tokenizer {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Token> {
-        let mut tokens: Vec<Token> = vec![];
+    pub fn next(&mut self) -> Result<Token> {
         if self.cur == self.source.len() {
-            bail!("End of file reaced.");
+            return Ok(self.token(TokenType::EOF, (self.cur, self.cur)));
         }
 
         // Skip all the whitespaces till the next token.
@@ -168,7 +174,7 @@ impl Tokenizer {
             }
 
             _ => {
-                unreachable!("With: {:?}", self.source[self.cur])
+                bail!("With: {:?}", self.source[self.cur]);
             }
         }
     }
@@ -183,7 +189,7 @@ pub mod tests {
     #[test]
     fn test_parsing_let_syntax() {
         let source = "let some_var: usize = 345 + 35353;";
-        let mut tokenizer = Tokenizer::new(source);
+        let mut tokenizer = Lexer::new(source);
 
         let result = vec![
             Token {
@@ -225,7 +231,7 @@ pub mod tests {
             },
         ];
         let mut i = 0;
-        while let Ok(token) = tokenizer.next_token() {
+        while let Ok(token) = tokenizer.next() {
             assert_eq!(token, result[i]);
             i += 1;
         }
@@ -233,7 +239,7 @@ pub mod tests {
 
     // fn test_parsing_let_without_type() {
     //     let source = "let some_var = 345 + 35353;";
-    //     let mut tokenizer = Tokenizer::new(source);
+    //     let mut tokenizer = Lexer::new(source);
     //     let tokens = tokenizer.tokenize();
     //     println!("tokens: {:?}", &tokens);
 
