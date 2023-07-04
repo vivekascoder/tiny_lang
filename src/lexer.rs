@@ -86,6 +86,7 @@ impl Lexer {
     pub fn next(&mut self) -> Result<Token> {
         if self.cur == self.source.len() {
             return Ok(self.token(TokenType::EOF, (self.cur, self.cur)));
+            // bail!("EOF reached");
         }
 
         // Skip all the whitespaces till the next token.
@@ -187,7 +188,7 @@ pub mod tests {
     use std::result::Result::Ok;
 
     #[test]
-    fn test_parsing_let_syntax() {
+    fn test_lexing_let_syntax() {
         let source = "let some_var: usize = 345 + 35353;";
         let mut tokenizer = Lexer::new(source);
 
@@ -229,12 +230,19 @@ pub mod tests {
                 type_: TokenType::SemiColon,
                 pos: (33, 34),
             },
+            Token {
+                type_: TokenType::EOF,
+                pos: (34, 34),
+            },
         ];
-        let mut i = 0;
+        let mut output = vec![];
         while let Ok(token) = tokenizer.next() {
-            assert_eq!(token, result[i]);
-            i += 1;
+            output.push(token.clone());
+            if token.type_ == TokenType::EOF {
+                break;
+            }
         }
+        assert_eq!(output, result);
     }
 
     // fn test_parsing_let_without_type() {

@@ -31,3 +31,46 @@ fun main(): void {
 }
 
 ```
+
+## Debug
+
+```rs
+ [
+    Let(
+        Ident(
+            "something",
+        ),
+        Infix(
+            Plus,
+
+            Literal(
+                SignedInteger(
+                    454,
+                ),
+            ),
+
+            Infix(
+                Multiply,
+                Infix(
+                    Multiply,
+                    Literal(
+                        SignedInteger(
+                            3,
+                        ),
+                    ),
+                    Literal(
+                        SignedInteger(
+                            4,
+                        ),
+                    ),
+                ),
+                Literal(
+                    SignedInteger(
+                        35,
+                    ),
+                ),
+            ),
+        ),
+    ),
+],
+```

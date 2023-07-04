@@ -73,7 +73,7 @@ impl Parser {
         let expr = self.parse_expression(Precedence::Lowest)?;
 
         if !self.expect_next_token(&TokenType::SemiColon)? {
-            panic!("`;` not found")
+            bail!("`;` not found")
         }
 
         Ok(Statement::Let(Ident(name), expr))
@@ -118,12 +118,13 @@ impl Parser {
         let mut left = match self.current_token {
             TokenType::Usize(val) => Expr::Literal(Literal::SignedInteger(val)),
             _ => {
-                panic!(
+                bail!(
                     "no prefix parse function found for {:?}",
                     self.current_token
                 );
             }
         };
+        println!("Left: {:?}", left);
 
         // Parse the infix
         while !self.next_token_is(&TokenType::SemiColon)
@@ -154,17 +155,18 @@ impl Parser {
                         TokenType::GreaterThan => Infix::GreaterThan,
                         TokenType::GreaterThanEqual => Infix::GreaterThanEqual,
                         _ => {
-                            panic!("Some errror");
+                            bail!("not a valid infix operator.");
                         }
                     };
+                    println!("Infix: {:?}", infix);
 
                     let precedence = self.current_token_precedence();
                     self.bump()?;
 
-                    match self.parse_expression(precedence) {
-                        Ok(expr) => return Ok(Expr::Infix(infix, Box::new(left), Box::new(expr))),
-                        Err(_) => {
-                            panic!("Can't parse the expression");
+                    left = match self.parse_expression(precedence) {
+                        Ok(expr) => Expr::Infix(infix, Box::new(left), Box::new(expr)),
+                        Err(e) => {
+                            bail!("error while parsing expr: {:?}", e);
                         }
                     }
                 }
@@ -183,8 +185,8 @@ impl Parser {
                 Ok(stmt) => {
                     program.push(stmt);
                 }
-                Err(_) => {
-                    panic!("That's it");
+                Err(e) => {
+                    bail!("That's it: {:?}", e)
                 }
             }
             if let Err(e) = self.bump() {
@@ -200,8 +202,27 @@ pub mod tests {
 
     #[test]
     fn test_let_statement_parsing() {
-        let code = "let something = 454;";
+        let code = "let something = 454 + 3 * 4 - 35;";
         let mut parser = Parser::new(code);
-        println!("Parsed statements: {:?}", parser.parse());
+        // println!("Parsed statements: {:#?}", parser.parse());
+        assert_eq!(
+            parser.parse().unwrap(),
+            [Statement::Let(
+                Ident("something".to_string()),
+                Expr::Infix(
+                    Infix::Minus,
+                    Box::new(Expr::Infix(
+                        Infix::Plus,
+                        Box::new(Expr::Literal(Literal::SignedInteger(454,))),
+                        Box::new(Expr::Infix(
+                            Infix::Multiply,
+                            Box::new(Expr::Literal(Literal::SignedInteger(3))),
+                            Box::new(Expr::Literal(Literal::SignedInteger(4))),
+                        )),
+                    )),
+                    Box::new(Expr::Literal(Literal::SignedInteger(35,)))
+                ),
+            )]
+        );
     }
 }
