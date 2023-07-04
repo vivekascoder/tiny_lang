@@ -19,6 +19,7 @@ pub type Program = Vec<Statement>;
 pub enum Expr {
     Ident(Ident),
     Infix(Infix, Box<Expr>, Box<Expr>),
+    Prefix(Prefix, Box<Expr>),
     Literal(Literal),
 }
 

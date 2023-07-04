@@ -23,6 +23,7 @@ pub enum TokenType {
     GreaterThanEqual,
     Lbracket,
     Lparen,
+    Bang,
 
     // Keywords
     KeywordLet,
@@ -121,6 +122,10 @@ impl Lexer {
                 self.cur += 1;
                 Ok(self.token(TokenType::Divide, (self.cur - 1, self.cur)))
             }
+            '!' => {
+                self.cur += 1;
+                Ok(self.token(TokenType::Bang, (self.cur - 1, self.cur)))
+            }
             '%' => {
                 self.cur += 1;
                 Ok(self.token(TokenType::Mod, (self.cur, self.cur + 1)))
@@ -175,7 +180,7 @@ impl Lexer {
             }
 
             _ => {
-                bail!("With: {:?}", self.source[self.cur]);
+                bail!("Illegal token found: {:?}", self.source[self.cur]);
             }
         }
     }

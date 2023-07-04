@@ -17,8 +17,8 @@ impl Parser {
             next_token: TokenType::EOF,
             errors: vec![],
         };
-        parser.bump();
-        parser.bump();
+        parser.bump().unwrap();
+        parser.bump().unwrap();
         parser
     }
 
@@ -117,6 +117,26 @@ impl Parser {
         // Parse the left
         let mut left = match self.current_token {
             TokenType::Usize(val) => Expr::Literal(Literal::SignedInteger(val)),
+            TokenType::Minus | TokenType::Bang | TokenType::Plus => {
+                // Parse prefix expression.
+
+                // Operator
+                let prefix = match self.current_token {
+                    TokenType::Bang => Prefix::Not,
+                    TokenType::Plus => Prefix::Plus,
+                    TokenType::Minus => Prefix::Minus,
+                    _ => panic!("not a valid infix operator."),
+                };
+                self.bump()?;
+
+                // Expression
+                match self.parse_expression(Precedence::Prefix) {
+                    Ok(val) => {
+                        return Ok(Expr::Prefix(prefix, Box::new(val)));
+                    }
+                    Err(e) => bail!("error while parsing expression for prefix with {:#?}", e),
+                }
+            }
             _ => {
                 bail!(
                     "no prefix parse function found for {:?}",
@@ -224,5 +244,22 @@ pub mod tests {
                 ),
             )]
         );
+    }
+
+    #[test]
+    fn test_prefix_expression_parsing() {
+        let code = "let val = +454;";
+        let mut parser = Parser::new(code);
+        // println!("Parsed statement: {:#?}", parser.parse());
+        assert_eq!(
+            parser.parse().unwrap(),
+            [Statement::Let(
+                Ident("val".to_string()),
+                Expr::Prefix(
+                    Prefix::Plus,
+                    Box::new(Expr::Literal(Literal::SignedInteger(454)))
+                )
+            )]
+        )
     }
 }
