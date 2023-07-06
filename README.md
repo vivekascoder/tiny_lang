@@ -29,6 +29,15 @@ What should `eval_infix_expr(e: InfixExpr)` do?
 1. Left expr is literal
 2. Anything else -> parse expression again
 
+What should my environment store?
+
+1. Variables
+   - Name, Value
+2. Functions
+   - Name, parameter, body
+3. Structs
+   - field name, field value
+
 ```
 printf("Hello World");
 ```

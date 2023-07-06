@@ -1,22 +1,23 @@
+use std::collections::HashMap;
+
 use anyhow::{bail, Result};
 
 use crate::{
     ast::{Expr, ExprResult, Ident, Infix, Literal, Prefix, Statement},
+    environment::Environment,
     parser::Parser,
 };
 
-pub struct Environment {}
-
 pub struct Interpreter {
-    // Something
     parser: Parser,
+    env: Environment,
 }
 
 impl Interpreter {
     fn new(source: &str) -> Self {
-        // Something
         Self {
             parser: Parser::new(source),
+            env: Environment::new(),
         }
     }
 
