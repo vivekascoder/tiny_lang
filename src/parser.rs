@@ -116,7 +116,7 @@ impl Parser {
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
         // Parse the left
         let mut left = match self.current_token {
-            TokenType::Usize(val) => Expr::Literal(Literal::SignedInteger(val)),
+            TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(val)),
             TokenType::Minus | TokenType::Bang | TokenType::Plus => {
                 // Parse prefix expression.
 
@@ -168,7 +168,7 @@ impl Parser {
                         TokenType::Minus => Infix::Minus,
                         TokenType::Divide => Infix::Divide,
                         TokenType::Multiply => Infix::Multiply,
-                        TokenType::Equal => Infix::Equal,
+                        TokenType::DoubleEqual => Infix::DoubleEqual,
                         TokenType::NotEqual => Infix::NotEqual,
                         TokenType::LessThan => Infix::LessThan,
                         TokenType::LessThanEqual => Infix::LessThanEqual,
@@ -234,14 +234,14 @@ pub mod tests {
                     Infix::Minus,
                     Box::new(Expr::Infix(
                         Infix::Plus,
-                        Box::new(Expr::Literal(Literal::SignedInteger(454,))),
+                        Box::new(Expr::Literal(Literal::UnsignedInteger(454,))),
                         Box::new(Expr::Infix(
                             Infix::Multiply,
-                            Box::new(Expr::Literal(Literal::SignedInteger(3))),
-                            Box::new(Expr::Literal(Literal::SignedInteger(4))),
+                            Box::new(Expr::Literal(Literal::UnsignedInteger(3))),
+                            Box::new(Expr::Literal(Literal::UnsignedInteger(4))),
                         )),
                     )),
-                    Box::new(Expr::Literal(Literal::SignedInteger(35,)))
+                    Box::new(Expr::Literal(Literal::UnsignedInteger(35,)))
                 ),
             )]
         );
@@ -258,7 +258,7 @@ pub mod tests {
                 Ident("val".to_string()),
                 Expr::Prefix(
                     Prefix::Plus,
-                    Box::new(Expr::Literal(Literal::SignedInteger(454)))
+                    Box::new(Expr::Literal(Literal::UnsignedInteger(454)))
                 )
             )]
         )

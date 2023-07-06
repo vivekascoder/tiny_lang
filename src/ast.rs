@@ -1,3 +1,7 @@
+// Types for our language.
+
+pub type Program = Vec<Statement>;
+
 // Precedence order
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub enum Precedence {
@@ -11,8 +15,6 @@ pub enum Precedence {
     Index,       // array[index]
 }
 
-pub type Program = Vec<Statement>;
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Ident(Ident),
@@ -22,12 +24,19 @@ pub enum Expr {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum ExprResult {
+    Bool(bool),
+    UnsignedInteger(usize),
+    Void,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Infix {
     Plus,
     Minus,
     Divide,
     Multiply,
-    Equal,
+    DoubleEqual,
     NotEqual,
     GreaterThanEqual,
     GreaterThan,
@@ -44,7 +53,7 @@ pub enum Prefix {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Literal {
-    SignedInteger(usize),
+    UnsignedInteger(usize),
     Bool(bool),
 }
 
@@ -52,30 +61,8 @@ pub enum Literal {
 pub struct Ident(pub String);
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Expression {
-    // Literal Values
-    Usize(usize),
-    Isize(isize),
-    // PrefixExpression(PrefixExpression)
-}
-
-// #[derive(Clone, Copy, PartialEq)]
-// struct PrefixExpression {
-//     operator:
-// }
-
-#[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(Ident, Expr),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LetStatement {
-    // Let token
-    token: TokenType,
-    // Identifier/name
-    identifier: String,
-    value: Expression,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -89,6 +76,7 @@ pub enum TokenType {
 
     // Operators
     Equal,
+    DoubleEqual,
     Plus,
     Minus,
     Multiply,

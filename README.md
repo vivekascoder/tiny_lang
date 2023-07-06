@@ -4,11 +4,36 @@ A simple frontend for LLVM
 
 ## Specification of the language.
 
+## Expressions
+
+What are expressions?
+
+1. Literals (Bool, Numbers, etc),
+2. Identifiers (Varibles),
+3. Function calls,
+4. Infix, Prefix (++3, !4, 4- 3)
+
+What should the `eval_expr(e: Expr)` return?
+
+1. Literals -> Literal.
+2. Idenfiers
+   1. Variables -> Literal
+3. Function calls -> The return type of the function.
+   1. Return type is void -> Void,
+   2. Return type is literal -> Literal,
+   3. Return type is, ... for now nothing else is supported.
+4. Infix, Prefix -> Literal
+
+What should `eval_infix_expr(e: InfixExpr)` do?
+
+1. Left expr is literal
+2. Anything else -> parse expression again
+
 ```
 printf("Hello World");
 ```
 
-```
+```ts
 import "module_name";
 
 const SOME_VAL: i64 = 123;
