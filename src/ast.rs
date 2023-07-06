@@ -1,5 +1,3 @@
-use crate::lexer::TokenType;
-
 // Precedence order
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
 pub enum Precedence {
@@ -78,4 +76,46 @@ pub struct LetStatement {
     // Identifier/name
     identifier: String,
     value: Expression,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TokenType {
+    EOF,
+    Identifier(String),
+    Usize(usize),
+    Boolean(bool),
+    Colon,
+    SemiColon,
+
+    // Operators
+    Equal,
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Mod,
+    NotEqual,
+    LessThan,
+    LessThanEqual,
+    GreaterThan,
+    GreaterThanEqual,
+    Lbracket,
+    Lparen,
+    Bang,
+
+    // Keywords
+    KeywordLet,
+    KeywordUsize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Token {
+    pub type_: TokenType,
+    pub pos: (usize, usize),
+}
+
+impl Token {
+    pub fn new(type_: TokenType, pos: (usize, usize)) -> Self {
+        Self { type_, pos }
+    }
 }

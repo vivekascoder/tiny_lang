@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::lexer::{Lexer, Token, TokenType};
+use crate::lexer::Lexer;
 use anyhow::{anyhow, bail, Result};
 
 pub struct Parser {
@@ -68,8 +68,8 @@ impl Parser {
 
         // next token should be expression.
         self.bump()?;
-        // current token should be expression
 
+        // current token should be expression
         let expr = self.parse_expression(Precedence::Lowest)?;
 
         if !self.expect_next_token(&TokenType::SemiColon)? {
@@ -216,6 +216,7 @@ impl Parser {
         Ok(program)
     }
 }
+
 #[cfg(test)]
 pub mod tests {
     use super::*;

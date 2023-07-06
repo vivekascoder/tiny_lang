@@ -1,46 +1,5 @@
-use anyhow::{bail, Ok, Result};
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum TokenType {
-    EOF,
-    Identifier(String),
-    Usize(usize),
-    Boolean(bool),
-    Colon,
-    SemiColon,
-
-    // Operators
-    Equal,
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-    Mod,
-    NotEqual,
-    LessThan,
-    LessThanEqual,
-    GreaterThan,
-    GreaterThanEqual,
-    Lbracket,
-    Lparen,
-    Bang,
-
-    // Keywords
-    KeywordLet,
-    KeywordUsize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Token {
-    pub type_: TokenType,
-    pos: (usize, usize),
-}
-
-impl Token {
-    pub fn new(type_: TokenType, pos: (usize, usize)) -> Self {
-        Self { type_, pos }
-    }
-}
+use crate::ast::*;
+use anyhow::{bail, Result};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lexer {
@@ -182,6 +141,22 @@ impl Lexer {
             _ => {
                 bail!("Illegal token found: {:?}", self.source[self.cur]);
             }
+        }
+    }
+}
+
+impl Iterator for Lexer {
+    type Item = Token;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next() {
+            Ok(t) => {
+                if t.type_ == TokenType::EOF {
+                    None
+                } else {
+                    Some(t)
+                }
+            }
+            Err(_) => None,
         }
     }
 }
