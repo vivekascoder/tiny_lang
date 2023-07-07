@@ -38,6 +38,18 @@ What should my environment store?
 3. Structs
    - field name, field value
 
+How does function looks like in tiny_lang?
+
+```ts
+fun calculate_something(a: usize, b: usize) => bool {
+    if (a > b) {
+        return true;
+    } else {
+        return false;
+    }
+}
+```
+
 ```
 printf("Hello World");
 ```
@@ -54,7 +66,7 @@ struct Something {
     val: i32
 }
 
-fun sum3(a: i32, b: i32, c: i32): i32 {
+fun sum3(a: i32, b: i32, c: i32) => i32 {
     return a + b + c;
 }
 
@@ -108,3 +120,7 @@ fun main(): void {
     ),
 ],
 ```
+
+## Things that are remaining.
+
+[TODOs](./TODO.md)

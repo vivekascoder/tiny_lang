@@ -87,13 +87,23 @@ pub enum TokenType {
     LessThanEqual,
     GreaterThan,
     GreaterThanEqual,
-    Lbracket,
-    Lparen,
     Bang,
+    LParen,
+    RParen,
+    LBrace, // {
+    RBrace, // }
+    Comma,
 
     // Keywords
     KeywordLet,
     KeywordUsize,
+    KeywordFun,
+    KeywordReturn,
+    KeywordIf,
+    KeywordElse,
+
+    // Symbol
+    SymbolReturn,
 }
 
 #[derive(Debug, Clone, PartialEq)]

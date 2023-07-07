@@ -99,8 +99,8 @@ impl Parser {
             TokenType::GreaterThan | TokenType::GreaterThanEqual => Precedence::LessGreater,
             TokenType::Plus | TokenType::Minus => Precedence::Sum,
             TokenType::Divide | TokenType::Multiply => Precedence::Product,
-            TokenType::Lbracket => Precedence::Index,
-            TokenType::Lparen => Precedence::Call,
+            TokenType::LBrace => Precedence::Index,
+            TokenType::LParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }

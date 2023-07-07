@@ -25,16 +25,22 @@ impl Lexer {
         match s {
             "let" => Some(TokenType::KeywordLet),
             "usize" => Some(TokenType::KeywordUsize),
+            "fun" => Some(TokenType::KeywordFun),
+            "return" => Some(TokenType::KeywordReturn),
+            "if" => Some(TokenType::KeywordIf),
+            "else" => Some(TokenType::KeywordElse),
+            "true" => Some(TokenType::Boolean(true)),
+            "false" => Some(TokenType::Boolean(false)),
             _ => None,
         }
     }
 
     fn skip_whitespace(&mut self) {
-        loop {
-            match self.source[self.cur] {
+        while !self.eof_reached() {
+            match self.current() {
                 // Do nothing for whitespace
                 ' ' | '\t' | '\n' | '\r' => {
-                    self.cur += 1;
+                    self.bump();
                 }
                 _ => {
                     break;
@@ -43,50 +49,118 @@ impl Lexer {
         }
     }
 
+    fn current(&self) -> char {
+        self.source[self.cur]
+    }
+
+    fn bump(&mut self) {
+        // if self.eof_reached() {
+
+        // }
+        self.cur += 1;
+    }
+
+    fn eof_reached(&self) -> bool {
+        self.cur == self.source.len()
+    }
+
     pub fn next(&mut self) -> Result<Token> {
-        if self.cur == self.source.len() {
+        // Skip all the whitespaces till the next token.
+        self.skip_whitespace();
+
+        if self.eof_reached() {
             return Ok(self.token(TokenType::EOF, (self.cur, self.cur)));
             // bail!("EOF reached");
         }
 
-        // Skip all the whitespaces till the next token.
-        self.skip_whitespace();
-
-        match self.source[self.cur] {
+        match self.current() {
             ';' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::SemiColon, (self.cur - 1, self.cur)))
             }
             ':' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Colon, (self.cur - 1, self.cur)))
             }
             '=' => {
-                self.cur += 1;
-                Ok(self.token(TokenType::Equal, (self.cur - 1, self.cur)))
+                self.bump();
+                match self.current() {
+                    '>' => {
+                        self.bump();
+                        Ok(self.token(TokenType::SymbolReturn, (self.cur - 2, self.cur)))
+                    }
+                    '=' => {
+                        self.bump();
+                        Ok(self.token(TokenType::DoubleEqual, (self.cur - 2, self.cur)))
+                    }
+                    _ => Ok(self.token(TokenType::Equal, (self.cur - 2, self.cur - 1))),
+                }
             }
+
+            '(' => {
+                self.bump();
+                Ok(self.token(TokenType::LParen, (self.cur - 1, self.cur)))
+            }
+
+            ')' => {
+                self.bump();
+                Ok(self.token(TokenType::RParen, (self.cur - 1, self.cur)))
+            }
+
+            '<' => {
+                self.bump();
+                Ok(self.token(TokenType::LessThan, (self.cur - 1, self.cur)))
+            }
+
+            '>' => {
+                self.bump();
+
+                match self.current() {
+                    '=' => {
+                        self.bump();
+                        Ok(self.token(TokenType::GreaterThanEqual, (self.cur - 2, self.cur)))
+                    }
+                    _ => Ok(self.token(TokenType::GreaterThan, (self.cur - 2, self.cur - 1))),
+                }
+            }
+
+            '{' => {
+                self.bump();
+                Ok(self.token(TokenType::LBrace, (self.cur - 1, self.cur)))
+            }
+
+            '}' => {
+                self.bump();
+                Ok(self.token(TokenType::RBrace, (self.cur - 1, self.cur)))
+            }
+
+            ',' => {
+                self.bump();
+                Ok(self.token(TokenType::Comma, (self.cur - 1, self.cur)))
+            }
+
             '+' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Plus, (self.cur - 1, self.cur)))
             }
             '-' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Minus, (self.cur - 1, self.cur)))
             }
             '*' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Multiply, (self.cur - 1, self.cur)))
             }
             '/' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Divide, (self.cur - 1, self.cur)))
             }
             '!' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Bang, (self.cur - 1, self.cur)))
             }
             '%' => {
-                self.cur += 1;
+                self.bump();
                 Ok(self.token(TokenType::Mod, (self.cur, self.cur + 1)))
             }
             'a'..='z' | 'A'..='Z' | '_' => {
@@ -95,10 +169,10 @@ impl Lexer {
 
                 // Start a loop to parse the identifier.
                 loop {
-                    match self.source[self.cur] {
+                    match self.current() {
                         // TODO: Should break if EOF?
                         'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => {
-                            self.cur += 1;
+                            self.bump();
                         }
 
                         // Encountered something else
@@ -122,9 +196,9 @@ impl Lexer {
                 let start = self.cur;
 
                 loop {
-                    match self.source[self.cur] {
+                    match self.current() {
                         '0'..='9' => {
-                            self.cur += 1;
+                            self.bump();
                         }
 
                         // Encountered any other char.
@@ -139,7 +213,7 @@ impl Lexer {
             }
 
             _ => {
-                bail!("Illegal token found: {:?}", self.source[self.cur]);
+                bail!("Illegal token found: {:?}", self.current());
             }
         }
     }
@@ -156,7 +230,9 @@ impl Iterator for Lexer {
                     Some(t)
                 }
             }
-            Err(_) => None,
+            Err(e) => {
+                panic!("expected Token but got error: {:?}", e);
+            }
         }
     }
 }
@@ -225,45 +301,151 @@ pub mod tests {
         assert_eq!(output, result);
     }
 
-    // fn test_parsing_let_without_type() {
-    //     let source = "let some_var = 345 + 35353;";
-    //     let mut tokenizer = Lexer::new(source);
-    //     let tokens = tokenizer.tokenize();
-    //     println!("tokens: {:?}", &tokens);
+    #[test]
+    fn test_function_declaration() {
+        let source = r#"
+        fun calculate_something(a: usize, b: usize) => bool {
+            if (a > b) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        "#;
+        let tokens: Vec<Token> = Lexer::new(source).into_iter().collect();
 
-    //     assert_eq!(
-    //         tokens,
-    //         vec![
-    //             Token {
-    //                 type_: KeywordLet,
-    //                 pos: (0, 3)
-    //             },
-    //             Token {
-    //                 type_: TokenType::Identifier(format!("some_var")),
-
-    //                 pos: (4, 12)
-    //             },
-    //             Token {
-    //                 type_: TokenType::Equal,
-    //                 pos: (21, 22)
-    //             },
-    //             Token {
-    //                 type_: TokenType::Usize(345),
-    //                 pos: (23, 26)
-    //             },
-    //             Token {
-    //                 type_: TokenType::Plus,
-    //                 pos: (27, 28)
-    //             },
-    //             Token {
-    //                 type_: TokenType::Usize(35353),
-    //                 pos: (29, 34)
-    //             },
-    //             Token {
-    //                 type_: TokenType::SemiColon,
-    //                 pos: (34, 35)
-    //             }
-    //         ]
-    //     );
-    // }
+        assert_eq!(
+            tokens,
+            [
+                Token {
+                    type_: KeywordFun,
+                    pos: (9, 12,),
+                },
+                Token {
+                    type_: Identifier("calculate_something".to_string()),
+                    pos: (13, 32,),
+                },
+                Token {
+                    type_: LParen,
+                    pos: (32, 33,),
+                },
+                Token {
+                    type_: Identifier("a".to_string()),
+                    pos: (33, 34,),
+                },
+                Token {
+                    type_: Colon,
+                    pos: (34, 35,),
+                },
+                Token {
+                    type_: KeywordUsize,
+                    pos: (36, 41,),
+                },
+                Token {
+                    type_: Comma,
+                    pos: (41, 42,),
+                },
+                Token {
+                    type_: Identifier("b".to_string()),
+                    pos: (43, 44,),
+                },
+                Token {
+                    type_: Colon,
+                    pos: (44, 45,),
+                },
+                Token {
+                    type_: KeywordUsize,
+                    pos: (46, 51,),
+                },
+                Token {
+                    type_: RParen,
+                    pos: (51, 52,),
+                },
+                Token {
+                    type_: SymbolReturn,
+                    pos: (53, 55,),
+                },
+                Token {
+                    type_: Identifier("bool".to_string()),
+                    pos: (56, 60,),
+                },
+                Token {
+                    type_: LBrace,
+                    pos: (61, 62,),
+                },
+                Token {
+                    type_: KeywordIf,
+                    pos: (75, 77,),
+                },
+                Token {
+                    type_: LParen,
+                    pos: (78, 79,),
+                },
+                Token {
+                    type_: Identifier("a".to_string()),
+                    pos: (79, 80,),
+                },
+                Token {
+                    type_: GreaterThan,
+                    pos: (80, 81,),
+                },
+                Token {
+                    type_: Identifier("b".to_string()),
+                    pos: (83, 84,),
+                },
+                Token {
+                    type_: RParen,
+                    pos: (84, 85,),
+                },
+                Token {
+                    type_: LBrace,
+                    pos: (86, 87,),
+                },
+                Token {
+                    type_: KeywordReturn,
+                    pos: (104, 110,),
+                },
+                Token {
+                    type_: Boolean(true,),
+                    pos: (111, 115,),
+                },
+                Token {
+                    type_: SemiColon,
+                    pos: (115, 116,),
+                },
+                Token {
+                    type_: RBrace,
+                    pos: (129, 130,),
+                },
+                Token {
+                    type_: KeywordElse,
+                    pos: (131, 135,),
+                },
+                Token {
+                    type_: LBrace,
+                    pos: (136, 137,),
+                },
+                Token {
+                    type_: KeywordReturn,
+                    pos: (154, 160,),
+                },
+                Token {
+                    type_: Boolean(false,),
+                    pos: (161, 166,),
+                },
+                Token {
+                    type_: SemiColon,
+                    pos: (166, 167,),
+                },
+                Token {
+                    type_: RBrace,
+                    pos: (180, 181,),
+                },
+                Token {
+                    type_: RBrace,
+                    pos: (190, 191,),
+                },
+            ]
+        );
+    }
 }
