@@ -50,6 +50,13 @@ fun calculate_something(a: usize, b: usize) => bool {
 }
 ```
 
+What can be inside a function / statement types.
+
+1. let, declare a variable.
+2. assign or mutate a variable.
+3. If, else.
+4. return statement.
+
 ```
 printf("Hello World");
 ```

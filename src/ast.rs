@@ -1,6 +1,7 @@
 // Types for our language.
 
 pub type Program = Vec<Statement>;
+pub type BlockStatement = Vec<Statement>;
 
 // Precedence order
 #[derive(PartialEq, PartialOrd, Debug, Clone)]
@@ -63,6 +64,22 @@ pub struct Ident(pub String);
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(Ident, Expr),
+    Function(Function),
+    Return(Expr),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Type {
+    UnsignedInteger,
+    Bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Function {
+    pub name: String,
+    pub params: Vec<(Ident, Type)>,
+    pub return_type: Option<Type>,
+    pub body: Vec<Statement>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -97,10 +114,12 @@ pub enum TokenType {
     // Keywords
     KeywordLet,
     KeywordUsize,
+    KeywordBool,
     KeywordFun,
     KeywordReturn,
     KeywordIf,
     KeywordElse,
+    KeywordVoid,
 
     // Symbol
     SymbolReturn,

@@ -75,6 +75,7 @@ impl Parser {
         if !self.expect_next_token(&TokenType::SemiColon)? {
             bail!("`;` not found")
         }
+        self.bump()?;
 
         Ok(Statement::Let(Ident(name), expr))
     }
@@ -83,10 +84,121 @@ impl Parser {
         todo!()
     }
 
+    fn keyword_to_type(&self, tok: &TokenType) -> Result<Type> {
+        match tok {
+            TokenType::KeywordUsize => Ok(Type::UnsignedInteger),
+            TokenType::KeywordBool => Ok(Type::Bool),
+            _ => {
+                bail!("{:?} is not a valid parameter type.", tok);
+            }
+        }
+    }
+
+    fn parse_function_statement(&mut self) -> Result<Statement> {
+        // current token is `fun`.
+
+        let fn_name = match self.next_token {
+            TokenType::Identifier(ref n) => n.clone(),
+            _ => {
+                bail!(
+                    "next token to parse function should be Identifier, got {:?} instead",
+                    &self.next_token
+                );
+            }
+        };
+        self.bump()?;
+
+        // TODO: use `expect_next_token()`
+        if !self.next_token_is(&TokenType::LParen) {
+            bail!(
+                "next token to parse function should be LParen, got {:?} instead",
+                &self.next_token
+            );
+        }
+        self.bump()?;
+
+        let mut params: Vec<(Ident, Type)> = vec![];
+
+        // Start parsing parameters
+        while !self.next_token_is(&TokenType::RParen) {
+            // parse ident-> : ->type
+            let param_name = match self.next_token {
+                TokenType::Identifier(ref n) => n.clone(),
+                _ => {
+                    bail!("next token to parse function parameters should be an Identifier, got {:?} instead", &self.next_token);
+                }
+            };
+            self.bump()?;
+
+            if !self.next_token_is(&TokenType::Colon) {
+                bail!("next token to parse function parameters should be an Identifier, got {:?} instead", &self.next_token);
+            }
+            self.bump()?;
+
+            let type_ = self.keyword_to_type(&self.next_token)?;
+            self.bump()?;
+
+            params.push((Ident(param_name), type_));
+        }
+
+        // next token is `)`
+        self.bump()?;
+
+        // parse the optional return type.
+        if !self.expect_next_token(&TokenType::SymbolReturn)? {
+            bail!("Expected `=>` but got {:?}", self.next_token);
+        }
+
+        let mut return_type: Option<Type> = None;
+        if !self.next_token_is(&TokenType::KeywordVoid) {
+            return_type = Some(self.keyword_to_type(&self.next_token)?);
+        }
+        self.bump()?;
+
+        if !self.expect_next_token(&TokenType::LBrace)? {
+            bail!("next token is not `{{`");
+        }
+
+        let body = self.parse_block_statement()?;
+
+        Ok(Statement::Function(Function {
+            name: fn_name,
+            params: params,
+            return_type: return_type,
+            body: body,
+        }))
+    }
+
+    fn parse_block_statement(&mut self) -> Result<BlockStatement> {
+        let mut statements: BlockStatement = vec![];
+        self.bump()?;
+
+        while !self.next_token_is(&TokenType::RBrace) {
+            statements.push(self.parse_statement()?);
+        }
+
+        self.bump()?;
+
+        Ok(statements)
+    }
+
+    fn parse_return_statement(&mut self) -> Result<Statement> {
+        self.bump()?;
+        let expr = self.parse_expression(Precedence::Lowest)?;
+
+        if !self.expect_next_token(&TokenType::SemiColon)? {
+            bail!("return statement has no semicolon");
+        }
+
+        Ok(Statement::Return(expr))
+    }
+
     fn parse_statement(&mut self) -> Result<Statement> {
         println!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token {
             TokenType::KeywordLet => self.parse_let_statement()?,
+            TokenType::KeywordFun => self.parse_function_statement()?,
+            TokenType::KeywordReturn => self.parse_return_statement()?,
             // leave the rest for now.
             _ => self.parse_expression_statement()?,
         })
@@ -117,6 +229,8 @@ impl Parser {
         // Parse the left
         let mut left = match self.current_token {
             TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(val)),
+            TokenType::Boolean(val) => Expr::Literal(Literal::Bool(val)),
+            TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
             TokenType::Minus | TokenType::Bang | TokenType::Plus => {
                 // Parse prefix expression.
 
@@ -203,6 +317,7 @@ impl Parser {
         while !self.current_token_is(&TokenType::EOF) {
             match self.parse_statement() {
                 Ok(stmt) => {
+                    println!("Statement: {:?}", &stmt);
                     program.push(stmt);
                 }
                 Err(e) => {
@@ -262,5 +377,18 @@ pub mod tests {
                 )
             )]
         )
+    }
+
+    #[test]
+    fn test_function_parsing() {
+        let code = r#"
+        fun return_something(a: usize) => bool {
+            let something = false;
+            return something;
+        }
+        "#;
+        let mut parser = Parser::new(code);
+
+        println!("Parsed: {:#?}", parser.parse());
     }
 }

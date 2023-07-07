@@ -99,6 +99,9 @@ impl Interpreter {
                     let expr_result = self.eval_expr(expr)?;
                     println!("Expression result: {:?}", expr_result);
                 }
+                _ => {
+                    todo!()
+                }
             }
         }
 

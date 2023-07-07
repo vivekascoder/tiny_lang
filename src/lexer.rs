@@ -31,6 +31,7 @@ impl Lexer {
             "else" => Some(TokenType::KeywordElse),
             "true" => Some(TokenType::Boolean(true)),
             "false" => Some(TokenType::Boolean(false)),
+            "bool" => Some(TokenType::KeywordBool),
             _ => None,
         }
     }
@@ -366,7 +367,7 @@ pub mod tests {
                     pos: (53, 55,),
                 },
                 Token {
-                    type_: Identifier("bool".to_string()),
+                    type_: KeywordBool,
                     pos: (56, 60,),
                 },
                 Token {
