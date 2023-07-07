@@ -389,6 +389,21 @@ pub mod tests {
         "#;
         let mut parser = Parser::new(code);
 
-        println!("Parsed: {:#?}", parser.parse());
+        // println!("Parsed: {:#?}", parser.parse());
+        assert_eq!(
+            parser.parse().unwrap(),
+            [Statement::Function(Function {
+                name: "return_something".to_string(),
+                params: vec![(Ident("a".to_string()), Type::UnsignedInteger)],
+                return_type: Some(Type::Bool),
+                body: vec![
+                    Statement::Let(
+                        Ident("something".to_string()),
+                        Expr::Literal(Literal::Bool(false))
+                    ),
+                    Statement::Return(Expr::Ident(Ident("something".to_string()))),
+                ],
+            })]
+        )
     }
 }
