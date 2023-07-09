@@ -4,20 +4,20 @@ use anyhow::{bail, Result};
 
 use crate::{
     ast::{Expr, ExprResult, Ident, Infix, Literal, Prefix, Program, Statement},
-    environment::Environment,
+    env::Env,
     parser::Parser,
 };
 
 pub struct Interpreter {
     parser: Parser,
-    env: Environment,
+    env: Env,
 }
 
 impl Interpreter {
     pub fn new(source: &str) -> Self {
         Self {
             parser: Parser::new(source),
-            env: Environment::new(),
+            env: Env::new(),
         }
     }
 
@@ -97,13 +97,15 @@ impl Interpreter {
             match statement {
                 Statement::Let(ident, expr) => {
                     let expr_result = self.eval_expr(expr)?;
-                    println!("Expression result: {:?}", expr_result);
+                    self.env.insert(ident.0, expr_result);
                 }
                 _ => {
                     todo!()
                 }
             }
         }
+
+        println!("Env: {:#?}", self.env);
 
         Ok(())
     }

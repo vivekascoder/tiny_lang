@@ -1,5 +1,5 @@
 pub mod ast;
-pub mod environment;
+pub mod env;
 pub mod interpreter;
 pub mod lexer;
 pub mod parser;

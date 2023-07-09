@@ -2,7 +2,7 @@
 
 ### To achieve: Inbuilt functions / print() / function calls.
 
-- [ ] implement tokenizing and parsing of function definations.
+- [x] implement tokenizing and parsing of function definations.
 - [ ] Finish the `environment` to store the scoped data for a function during the call.
 - [ ] Implement the Function type in the ExprResult.
 

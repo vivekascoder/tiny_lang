@@ -57,6 +57,24 @@ What can be inside a function / statement types.
 3. If, else.
 4. return statement.
 
+Will we require nested scopes in interpreter?
+
+```
+{
+    scope: {
+        "something": 23,
+        "another": 34,
+    },
+    parent: {
+        scope: {
+            "something": 23,
+            "another": 34,
+        },
+        parent: null,
+    }
+}
+```
+
 ```
 printf("Hello World");
 ```

@@ -75,7 +75,7 @@ impl Parser {
         if !self.expect_next_token(&TokenType::SemiColon)? {
             bail!("`;` not found")
         }
-        self.bump()?;
+        // self.bump()?;
 
         Ok(Statement::Let(Ident(name), expr))
     }

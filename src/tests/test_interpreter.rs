@@ -4,7 +4,10 @@ mod tests {
 
     #[test]
     fn does_interpreter_starts() {
-        let source = "let some_var = 4 + 4 + 5;";
+        let source = r#"
+        let a = 454 + 3636 * 3; 
+        let b = 45 / 3;
+        "#;
         let mut i = Interpreter::new(source);
         i.eval().unwrap();
     }

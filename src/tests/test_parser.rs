@@ -30,6 +30,16 @@ pub mod tests {
     }
 
     #[test]
+    fn test_multiple_let_statement_parsing() {
+        let code = r#"
+        let something = 454 + 3 * 4 - 35;
+        let a = 35 / 3;
+        "#;
+        let mut parser = Parser::new(code);
+        println!("Parsed statements: {:#?}", parser.parse());
+    }
+
+    #[test]
     fn test_prefix_expression_parsing() {
         let code = "let val = +454;";
         let mut parser = Parser::new(code);
