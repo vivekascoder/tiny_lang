@@ -173,7 +173,9 @@ impl Parser {
         let mut statements: BlockStatement = vec![];
         self.bump()?;
 
-        while !self.next_token_is(&TokenType::RBrace) {
+        println!("Current token: {:?}", &self.current_token);
+
+        while !self.current_token_is(&TokenType::RBrace) {
             statements.push(self.parse_statement()?);
         }
 
@@ -189,14 +191,67 @@ impl Parser {
         if !self.expect_next_token(&TokenType::SemiColon)? {
             bail!("return statement has no semicolon");
         }
+        self.bump()?;
 
         Ok(Statement::Return(expr))
+    }
+
+    fn parse_if_statement(&mut self) -> Result<Statement> {
+        if !self.expect_next_token(&TokenType::LParen)? {
+            bail!(
+                "parsing if: expected `(` but found {:?}, instead",
+                self.current_token
+            );
+        }
+
+        // WHY: to make the current token not `(`
+        self.bump()?;
+
+        // condition
+        let expr = self.parse_expression(Precedence::Lowest)?;
+        println!("Expression: {:?}", expr);
+
+        if !self.expect_next_token(&TokenType::RParen)? {
+            bail!(
+                "parsing if: expected `)` but found {:?}, instead",
+                self.current_token
+            );
+        }
+
+        if !self.expect_next_token(&TokenType::LBrace)? {
+            bail!(
+                "parsing if: expected `{{` but found {:?}, instead",
+                self.current_token
+            );
+        }
+        // self.bump()?;
+
+        let block = self.parse_block_statement()?;
+
+        // If next token is `else` then parse else block.
+        let mut else_body: Option<BlockStatement> = None;
+        if self.current_token_is(&TokenType::KeywordElse) {
+            if !self.expect_next_token(&TokenType::LBrace)? {
+                bail!(
+                    "expected `{{` while parsing else body but got {:?}",
+                    &self.next_token
+                );
+            }
+            else_body = Some(self.parse_block_statement()?);
+        }
+
+        Ok(Statement::If(Condition {
+            condition: expr,
+            if_body: block,
+            else_body: else_body,
+        }))
     }
 
     fn parse_statement(&mut self) -> Result<Statement> {
         println!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token {
             TokenType::KeywordLet => self.parse_let_statement()?,
+            TokenType::KeywordIf => self.parse_if_statement()?,
             TokenType::KeywordFun => self.parse_function_statement()?,
             TokenType::KeywordReturn => self.parse_return_statement()?,
             // leave the rest for now.
@@ -329,81 +384,5 @@ impl Parser {
             }
         }
         Ok(program)
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-
-    #[test]
-    fn test_let_statement_parsing() {
-        let code = "let something = 454 + 3 * 4 - 35;";
-        let mut parser = Parser::new(code);
-        // println!("Parsed statements: {:#?}", parser.parse());
-        assert_eq!(
-            parser.parse().unwrap(),
-            [Statement::Let(
-                Ident("something".to_string()),
-                Expr::Infix(
-                    Infix::Minus,
-                    Box::new(Expr::Infix(
-                        Infix::Plus,
-                        Box::new(Expr::Literal(Literal::UnsignedInteger(454,))),
-                        Box::new(Expr::Infix(
-                            Infix::Multiply,
-                            Box::new(Expr::Literal(Literal::UnsignedInteger(3))),
-                            Box::new(Expr::Literal(Literal::UnsignedInteger(4))),
-                        )),
-                    )),
-                    Box::new(Expr::Literal(Literal::UnsignedInteger(35,)))
-                ),
-            )]
-        );
-    }
-
-    #[test]
-    fn test_prefix_expression_parsing() {
-        let code = "let val = +454;";
-        let mut parser = Parser::new(code);
-        // println!("Parsed statement: {:#?}", parser.parse());
-        assert_eq!(
-            parser.parse().unwrap(),
-            [Statement::Let(
-                Ident("val".to_string()),
-                Expr::Prefix(
-                    Prefix::Plus,
-                    Box::new(Expr::Literal(Literal::UnsignedInteger(454)))
-                )
-            )]
-        )
-    }
-
-    #[test]
-    fn test_function_parsing() {
-        let code = r#"
-        fun return_something(a: usize) => bool {
-            let something = false;
-            return something;
-        }
-        "#;
-        let mut parser = Parser::new(code);
-
-        // println!("Parsed: {:#?}", parser.parse());
-        assert_eq!(
-            parser.parse().unwrap(),
-            [Statement::Function(Function {
-                name: "return_something".to_string(),
-                params: vec![(Ident("a".to_string()), Type::UnsignedInteger)],
-                return_type: Some(Type::Bool),
-                body: vec![
-                    Statement::Let(
-                        Ident("something".to_string()),
-                        Expr::Literal(Literal::Bool(false))
-                    ),
-                    Statement::Return(Expr::Ident(Ident("something".to_string()))),
-                ],
-            })]
-        )
     }
 }

@@ -66,6 +66,14 @@ pub enum Statement {
     Let(Ident, Expr),
     Function(Function),
     Return(Expr),
+    If(Condition),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Condition {
+    pub condition: Expr,
+    pub if_body: BlockStatement,
+    pub else_body: Option<BlockStatement>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

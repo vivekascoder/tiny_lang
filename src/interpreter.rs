@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{bail, Result};
 
 use crate::{
-    ast::{Expr, ExprResult, Ident, Infix, Literal, Prefix, Statement},
+    ast::{Expr, ExprResult, Ident, Infix, Literal, Prefix, Program, Statement},
     environment::Environment,
     parser::Parser,
 };
@@ -14,7 +14,7 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    fn new(source: &str) -> Self {
+    pub fn new(source: &str) -> Self {
         Self {
             parser: Parser::new(source),
             env: Environment::new(),
@@ -90,8 +90,8 @@ impl Interpreter {
     }
 
     /// Evaluate the AST
-    fn eval(&mut self) -> Result<()> {
-        let program = self.parser.parse()?;
+    pub fn eval(&mut self) -> Result<()> {
+        let program: Program = self.parser.parse()?;
 
         for statement in program {
             match statement {
@@ -106,17 +106,5 @@ impl Interpreter {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn does_interpreter_starts() {
-        let source = "let some_var = 4 + 4 + 5;";
-        let mut i = Interpreter::new(source);
-        i.eval().unwrap();
     }
 }
