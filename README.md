@@ -75,6 +75,12 @@ Will we require nested scopes in interpreter?
 }
 ```
 
+How to store functions?
+
+- Can expressions result in a function?
+  - false
+- What type is getting stored in the memory?
+
 ```
 printf("Hello World");
 ```

@@ -32,6 +32,12 @@ pub enum ExprResult {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum MemoryObject {
+    ExprResult(ExprResult),
+    Function(Function),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Infix {
     Plus,
     Minus,

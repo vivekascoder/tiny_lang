@@ -1,12 +1,7 @@
-use std::collections::HashMap;
-
+use crate::ast::*;
 use anyhow::{bail, Result};
 
-use crate::{
-    ast::{Expr, ExprResult, Ident, Infix, Literal, Prefix, Program, Statement},
-    env::Env,
-    parser::Parser,
-};
+use crate::{env::Env, parser::Parser};
 
 pub struct Interpreter {
     parser: Parser,
@@ -97,12 +92,16 @@ impl Interpreter {
             match statement {
                 Statement::Let(ident, expr) => {
                     let expr_result = self.eval_expr(expr)?;
-                    self.env.insert(ident.0, expr_result);
+                    self.env
+                        .insert(ident.0, MemoryObject::ExprResult(expr_result));
                 }
+                Statement::Function(fun) => self
+                    .env
+                    .insert(fun.name.clone(), MemoryObject::Function(fun)),
                 _ => {
                     todo!()
                 }
-            }
+            };
         }
 
         println!("Env: {:#?}", self.env);

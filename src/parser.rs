@@ -150,6 +150,7 @@ impl Parser {
         }
 
         let mut return_type: Option<Type> = None;
+        println!("Next token is: {:?}", self.next_token);
         if !self.next_token_is(&TokenType::KeywordVoid) {
             return_type = Some(self.keyword_to_type(&self.next_token)?);
         }

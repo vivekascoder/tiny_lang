@@ -1,9 +1,9 @@
-use crate::ast::ExprResult;
+use crate::ast::MemoryObject;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Env {
-    store: HashMap<String, ExprResult>,
+    store: HashMap<String, MemoryObject>,
     outer: Option<Box<Env>>,
 }
 
@@ -15,11 +15,11 @@ impl Env {
         }
     }
 
-    pub fn insert(&mut self, key: String, val: ExprResult) {
+    pub fn insert(&mut self, key: String, val: MemoryObject) {
         self.store.insert(key, val);
     }
 
-    pub fn get(&mut self, key: &str) -> Option<&mut ExprResult> {
+    pub fn get(&mut self, key: &str) -> Option<&mut MemoryObject> {
         return match self.store.get_mut(key) {
             Some(v) => Some(v),
             None => match self.outer {
