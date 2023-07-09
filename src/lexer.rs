@@ -5,6 +5,8 @@ use anyhow::{bail, Result};
 pub struct Lexer {
     // To track the current index at the string
     cur: usize,
+    row: usize,
+    col: usize,
     source: Vec<char>,
 }
 
@@ -13,6 +15,8 @@ impl Lexer {
     pub fn new(s: &str) -> Self {
         Self {
             cur: 0,
+            row: 0,
+            col: 0,
             source: s.chars().collect(),
         }
     }
@@ -40,7 +44,12 @@ impl Lexer {
         while !self.eof_reached() {
             match self.current() {
                 // Do nothing for whitespace
-                ' ' | '\t' | '\n' | '\r' => {
+                ' ' | '\t' | '\r' => {
+                    self.bump();
+                }
+                '\n' => {
+                    self.col += 1;
+                    self.row = 0;
                     self.bump();
                 }
                 _ => {
@@ -59,6 +68,7 @@ impl Lexer {
 
         // }
         self.cur += 1;
+        self.col += 1;
     }
 
     fn eof_reached(&self) -> bool {

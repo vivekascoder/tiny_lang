@@ -37,6 +37,35 @@ pub mod tests {
         "#;
         let mut parser = Parser::new(code);
         println!("Parsed statements: {:#?}", parser.parse());
+        assert_eq_ast(
+            code,
+            vec![
+                Statement::Let(
+                    Ident("something".to_string()),
+                    Expr::Infix(
+                        Infix::Minus,
+                        Box::new(Expr::Infix(
+                            Infix::Plus,
+                            Box::new(Expr::Literal(Literal::UnsignedInteger(454))),
+                            Box::new(Expr::Infix(
+                                Infix::Multiply,
+                                Box::new(Expr::Literal(Literal::UnsignedInteger(3))),
+                                Box::new(Expr::Literal(Literal::UnsignedInteger(4))),
+                            )),
+                        )),
+                        Box::new(Expr::Literal(Literal::UnsignedInteger(35))),
+                    ),
+                ),
+                Statement::Let(
+                    Ident("a".to_string()),
+                    Expr::Infix(
+                        Infix::Divide,
+                        Box::new(Expr::Literal(Literal::UnsignedInteger(35))),
+                        Box::new(Expr::Literal(Literal::UnsignedInteger(3))),
+                    ),
+                ),
+            ],
+        )
     }
 
     #[test]

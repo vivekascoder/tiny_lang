@@ -75,7 +75,7 @@ impl Parser {
         if !self.expect_next_token(&TokenType::SemiColon)? {
             bail!("`;` not found")
         }
-        // self.bump()?;
+        self.bump()?;
 
         Ok(Statement::Let(Ident(name), expr))
     }
@@ -159,6 +159,8 @@ impl Parser {
             bail!("next token is not `{{`");
         }
 
+        self.bump()?;
+
         let body = self.parse_block_statement()?;
 
         Ok(Statement::Function(Function {
@@ -171,7 +173,6 @@ impl Parser {
 
     fn parse_block_statement(&mut self) -> Result<BlockStatement> {
         let mut statements: BlockStatement = vec![];
-        self.bump()?;
 
         println!("Current token: {:?}", &self.current_token);
 
@@ -224,7 +225,7 @@ impl Parser {
                 self.current_token
             );
         }
-        // self.bump()?;
+        self.bump()?;
 
         let block = self.parse_block_statement()?;
 
@@ -237,6 +238,7 @@ impl Parser {
                     &self.next_token
                 );
             }
+            self.bump()?;
             else_body = Some(self.parse_block_statement()?);
         }
 
@@ -255,7 +257,9 @@ impl Parser {
             TokenType::KeywordFun => self.parse_function_statement()?,
             TokenType::KeywordReturn => self.parse_return_statement()?,
             // leave the rest for now.
-            _ => self.parse_expression_statement()?,
+            _ => {
+                bail!("invalid statement, {:?}", self.current_token);
+            }
         })
     }
 
@@ -378,9 +382,6 @@ impl Parser {
                 Err(e) => {
                     bail!("That's it: {:?}", e)
                 }
-            }
-            if let Err(e) = self.bump() {
-                bail!("lexer error with {:?}", e)
             }
         }
         Ok(program)
