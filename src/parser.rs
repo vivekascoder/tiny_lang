@@ -135,7 +135,7 @@ impl Parser {
         let mut params: Vec<(Ident, Type)> = vec![];
 
         // Start parsing parameters
-        while !self.next_token_is(&TokenType::RParen) {
+        while !self.current_token_is(&TokenType::RParen) {
             // parse ident-> : ->type
             let param_name = match self.next_token {
                 TokenType::Identifier(ref n) => n.clone(),
@@ -146,18 +146,23 @@ impl Parser {
             self.bump()?;
 
             if !self.next_token_is(&TokenType::Colon) {
-                bail!("next token to parse function parameters should be an Identifier, got {:?} instead", &self.next_token);
+                bail!(
+                    "next token to parse function parameters should be an Colon, got {:?} instead",
+                    &self.next_token
+                );
             }
             self.bump()?;
 
             let type_ = self.keyword_to_type(&self.next_token)?;
             self.bump()?;
 
+            if !(self.next_token_is(&TokenType::Comma) || self.next_token_is(&TokenType::RParen)) {
+                bail!("expected Command, but found {:?}", self.next_token);
+            }
+            self.bump()?;
+
             params.push((Ident(param_name), type_));
         }
-
-        // next token is `)`
-        self.bump()?;
 
         // parse the optional return type.
         if !self.expect_next_token(&TokenType::SymbolReturn)? {

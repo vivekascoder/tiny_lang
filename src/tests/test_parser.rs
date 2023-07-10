@@ -1,4 +1,3 @@
-
 use crate::ast::*;
 use crate::parser::Parser;
 
@@ -69,5 +68,22 @@ fn test_expression_statement_infix() {
     let code = r#"
         5456 + 33563 + 34;
         "#;
+    insta::assert_debug_snapshot!(Parser::new(code).parse());
+}
+
+#[test]
+fn test_function_and_call() {
+    let code = r#"
+    let a = 445;
+    let b = 45;
+
+
+    fun sum(a: usize, b: usize) => usize {
+        let c = a + b;
+        return c;
+    }
+
+    sum(a, b);
+    "#;
     insta::assert_debug_snapshot!(Parser::new(code).parse());
 }

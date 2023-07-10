@@ -1,0 +1,328 @@
+---
+source: src/tests/test_lexer.rs
+expression: "Lexer::new(code).into_iter().collect::<Vec<Token>>()"
+---
+[
+    Token {
+        type_: KeywordLet,
+        pos: (
+            5,
+            8,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "a",
+        ),
+        pos: (
+            9,
+            10,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            11,
+            12,
+        ),
+    },
+    Token {
+        type_: Usize(
+            445,
+        ),
+        pos: (
+            13,
+            16,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            16,
+            17,
+        ),
+    },
+    Token {
+        type_: KeywordLet,
+        pos: (
+            22,
+            25,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "b",
+        ),
+        pos: (
+            26,
+            27,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            28,
+            29,
+        ),
+    },
+    Token {
+        type_: Usize(
+            45,
+        ),
+        pos: (
+            30,
+            32,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            32,
+            33,
+        ),
+    },
+    Token {
+        type_: KeywordFun,
+        pos: (
+            40,
+            43,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "sum",
+        ),
+        pos: (
+            44,
+            47,
+        ),
+    },
+    Token {
+        type_: LParen,
+        pos: (
+            47,
+            48,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "a",
+        ),
+        pos: (
+            48,
+            49,
+        ),
+    },
+    Token {
+        type_: Colon,
+        pos: (
+            49,
+            50,
+        ),
+    },
+    Token {
+        type_: KeywordUsize,
+        pos: (
+            51,
+            56,
+        ),
+    },
+    Token {
+        type_: Comma,
+        pos: (
+            56,
+            57,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "b",
+        ),
+        pos: (
+            58,
+            59,
+        ),
+    },
+    Token {
+        type_: Colon,
+        pos: (
+            59,
+            60,
+        ),
+    },
+    Token {
+        type_: KeywordUsize,
+        pos: (
+            61,
+            66,
+        ),
+    },
+    Token {
+        type_: RParen,
+        pos: (
+            66,
+            67,
+        ),
+    },
+    Token {
+        type_: SymbolReturn,
+        pos: (
+            68,
+            70,
+        ),
+    },
+    Token {
+        type_: KeywordUsize,
+        pos: (
+            71,
+            76,
+        ),
+    },
+    Token {
+        type_: LBrace,
+        pos: (
+            77,
+            78,
+        ),
+    },
+    Token {
+        type_: KeywordLet,
+        pos: (
+            87,
+            90,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "c",
+        ),
+        pos: (
+            91,
+            92,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            93,
+            94,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "a",
+        ),
+        pos: (
+            95,
+            96,
+        ),
+    },
+    Token {
+        type_: Plus,
+        pos: (
+            97,
+            98,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "b",
+        ),
+        pos: (
+            99,
+            100,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            100,
+            101,
+        ),
+    },
+    Token {
+        type_: KeywordReturn,
+        pos: (
+            110,
+            116,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "c",
+        ),
+        pos: (
+            117,
+            118,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            118,
+            119,
+        ),
+    },
+    Token {
+        type_: RBrace,
+        pos: (
+            124,
+            125,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "sum",
+        ),
+        pos: (
+            131,
+            134,
+        ),
+    },
+    Token {
+        type_: LParen,
+        pos: (
+            134,
+            135,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "a",
+        ),
+        pos: (
+            135,
+            136,
+        ),
+    },
+    Token {
+        type_: Comma,
+        pos: (
+            136,
+            137,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "b",
+        ),
+        pos: (
+            138,
+            139,
+        ),
+    },
+    Token {
+        type_: RParen,
+        pos: (
+            139,
+            140,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            140,
+            141,
+        ),
+    },
+]

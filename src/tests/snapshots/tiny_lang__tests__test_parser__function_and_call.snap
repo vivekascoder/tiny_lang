@@ -1,0 +1,96 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(code).parse()"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "a",
+            ),
+            Literal(
+                UnsignedInteger(
+                    445,
+                ),
+            ),
+        ),
+        Let(
+            Ident(
+                "b",
+            ),
+            Literal(
+                UnsignedInteger(
+                    45,
+                ),
+            ),
+        ),
+        Function(
+            Function {
+                name: "sum",
+                params: [
+                    (
+                        Ident(
+                            "a",
+                        ),
+                        UnsignedInteger,
+                    ),
+                    (
+                        Ident(
+                            "b",
+                        ),
+                        UnsignedInteger,
+                    ),
+                ],
+                return_type: Some(
+                    UnsignedInteger,
+                ),
+                body: [
+                    Let(
+                        Ident(
+                            "c",
+                        ),
+                        Infix(
+                            Plus,
+                            Ident(
+                                Ident(
+                                    "a",
+                                ),
+                            ),
+                            Ident(
+                                Ident(
+                                    "b",
+                                ),
+                            ),
+                        ),
+                    ),
+                    Return(
+                        Ident(
+                            Ident(
+                                "c",
+                            ),
+                        ),
+                    ),
+                ],
+            },
+        ),
+        Expr(
+            Call(
+                FunctionCall {
+                    parameters: [
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        Ident(
+                            Ident(
+                                "b",
+                            ),
+                        ),
+                    ],
+                    name: "sum",
+                },
+            ),
+        ),
+    ],
+)

@@ -20,3 +20,20 @@ fn test_function_declaration() {
         "#;
     insta::assert_debug_snapshot!(Lexer::new(source).into_iter().collect::<Vec<Token>>());
 }
+
+#[test]
+fn test_function_decl_and_call() {
+    let code = r#"
+    let a = 445;
+    let b = 45;
+
+
+    fun sum(a: usize, b: usize) => usize {
+        let c = a + b;
+        return c;
+    }
+
+    sum(a, b);
+    "#;
+    insta::assert_debug_snapshot!(Lexer::new(code).into_iter().collect::<Vec<Token>>());
+}

@@ -29,6 +29,16 @@ impl Env {
         };
     }
 
+    pub fn exists(&mut self, key: &str) -> bool {
+        return match self.store.contains_key(key) {
+            true => true,
+            false => match self.outer {
+                None => false,
+                Some(ref mut outer) => outer.exists(key),
+            },
+        };
+    }
+
     pub fn new_with_outer(outer: Box<Env>) -> Self {
         Self {
             store: HashMap::new(),

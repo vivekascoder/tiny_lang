@@ -16,7 +16,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_infix_expr(&self, infix: Infix, left: Expr, right: Expr) -> Result<ExprResult> {
+    fn eval_infix_expr(&mut self, infix: Infix, left: Expr, right: Expr) -> Result<ExprResult> {
         let left_result = self.eval_expr(left)?;
         let right_result = self.eval_expr(right)?;
 
@@ -75,12 +75,22 @@ impl Interpreter {
         }
     }
 
-    fn eval_expr(&self, expr: Expr) -> Result<ExprResult> {
+    fn eval_fn_call(&mut self, fn_call: FunctionCall) -> Result<ExprResult> {
+        // make sure the function exists in memory.
+        if !self.env.exists(&fn_call.name) {
+            bail!("Function doesn't exists.");
+        }
+
+        todo!();
+    }
+
+    fn eval_expr(&mut self, expr: Expr) -> Result<ExprResult> {
         match expr {
             Expr::Infix(infix, left, right) => Ok(self.eval_infix_expr(infix, *left, *right)?),
             Expr::Prefix(op, expr) => Ok(self.eval_prefix_expr(op, *expr)?),
             Expr::Literal(l) => Ok(self.eval_literal(l)?),
             Expr::Ident(variable) => Ok(self.eval_ident(variable)?),
+            Expr::Call(fn_call) => Ok(self.eval_fn_call(fn_call)?),
             _ => {
                 todo!()
             }
