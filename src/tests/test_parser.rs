@@ -79,8 +79,10 @@ fn test_function_and_call() {
 
 
     fun sum(a: usize, b: usize) => usize {
-        let c = a + b;
-        return c;
+        if (a != 0) {
+            let c = a + b;
+            return c;
+        }
     }
 
     sum(a, b);

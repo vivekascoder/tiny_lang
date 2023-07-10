@@ -45,30 +45,50 @@ Ok(
                     UnsignedInteger,
                 ),
                 body: [
-                    Let(
-                        Ident(
-                            "c",
-                        ),
-                        Infix(
-                            Plus,
-                            Ident(
+                    If(
+                        Condition {
+                            condition: Infix(
+                                NotEqual,
                                 Ident(
-                                    "a",
+                                    Ident(
+                                        "a",
+                                    ),
+                                ),
+                                Literal(
+                                    UnsignedInteger(
+                                        0,
+                                    ),
                                 ),
                             ),
-                            Ident(
-                                Ident(
-                                    "b",
+                            if_body: [
+                                Let(
+                                    Ident(
+                                        "c",
+                                    ),
+                                    Infix(
+                                        Plus,
+                                        Ident(
+                                            Ident(
+                                                "a",
+                                            ),
+                                        ),
+                                        Ident(
+                                            Ident(
+                                                "b",
+                                            ),
+                                        ),
+                                    ),
                                 ),
-                            ),
-                        ),
-                    ),
-                    Return(
-                        Ident(
-                            Ident(
-                                "c",
-                            ),
-                        ),
+                                Return(
+                                    Ident(
+                                        Ident(
+                                            "c",
+                                        ),
+                                    ),
+                                ),
+                            ],
+                            else_body: None,
+                        },
                     ),
                 ],
             },

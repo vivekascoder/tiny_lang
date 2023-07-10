@@ -140,7 +140,7 @@ impl Lexer {
                         self.bump();
                         Ok(self.token(TokenType::GreaterThanEqual, (self.cur - 2, self.cur)))
                     }
-                    _ => Ok(self.token(TokenType::GreaterThan, (self.cur - 2, self.cur - 1))),
+                    _ => Ok(self.token(TokenType::GreaterThan, (self.cur - 1, self.cur))),
                 }
             }
 
@@ -177,7 +177,13 @@ impl Lexer {
             }
             '!' => {
                 self.bump();
-                Ok(self.token(TokenType::Bang, (self.cur - 1, self.cur)))
+                match self.current() {
+                    '=' => {
+                        self.bump();
+                        Ok(self.token(TokenType::NotEqual, (self.cur - 2, self.cur)))
+                    }
+                    _ => Ok(self.token(TokenType::Bang, (self.cur - 1, self.cur))),
+                }
             }
             '%' => {
                 self.bump();
