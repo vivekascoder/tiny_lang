@@ -1,0 +1,75 @@
+---
+source: src/tests/test_lexer.rs
+expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
+---
+[
+    Token {
+        type_: KeywordLet,
+        pos: (
+            0,
+            3,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "some_var",
+        ),
+        pos: (
+            4,
+            12,
+        ),
+    },
+    Token {
+        type_: Colon,
+        pos: (
+            12,
+            13,
+        ),
+    },
+    Token {
+        type_: KeywordUsize,
+        pos: (
+            14,
+            19,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            20,
+            21,
+        ),
+    },
+    Token {
+        type_: Usize(
+            345,
+        ),
+        pos: (
+            22,
+            25,
+        ),
+    },
+    Token {
+        type_: Plus,
+        pos: (
+            26,
+            27,
+        ),
+    },
+    Token {
+        type_: Usize(
+            35353,
+        ),
+        pos: (
+            28,
+            33,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            33,
+            34,
+        ),
+    },
+]

@@ -24,10 +24,6 @@ pub mod tests {
         insta::assert_debug_snapshot!(Parser::new(code).parse());
     }
 
-    fn assert_eq_ast(code: &str, ast: Program) {
-        assert_eq!(Parser::new(code).parse().unwrap(), ast);
-    }
-
     #[test]
     fn test_function_parsing() {
         let code = r#"
