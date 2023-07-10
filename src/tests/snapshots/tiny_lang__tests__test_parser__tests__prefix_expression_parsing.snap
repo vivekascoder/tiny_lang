@@ -1,0 +1,21 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(code).parse()"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "val",
+            ),
+            Prefix(
+                Plus,
+                Literal(
+                    UnsignedInteger(
+                        454,
+                    ),
+                ),
+            ),
+        ),
+    ],
+)

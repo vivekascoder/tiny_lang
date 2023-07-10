@@ -1,0 +1,51 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(code).parse()"
+---
+Ok(
+    [
+        If(
+            Condition {
+                condition: Infix(
+                    GreaterThan,
+                    Literal(
+                        UnsignedInteger(
+                            54,
+                        ),
+                    ),
+                    Literal(
+                        UnsignedInteger(
+                            34,
+                        ),
+                    ),
+                ),
+                if_body: [
+                    Let(
+                        Ident(
+                            "something",
+                        ),
+                        Literal(
+                            UnsignedInteger(
+                                446,
+                            ),
+                        ),
+                    ),
+                ],
+                else_body: Some(
+                    [
+                        Let(
+                            Ident(
+                                "somethine",
+                            ),
+                            Literal(
+                                UnsignedInteger(
+                                    0,
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            },
+        ),
+    ],
+)

@@ -8,3 +8,13 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.71"
 regex = "1.8.4"
+
+[dev-dependencies]
+insta = { version = "1.30.0", features = ["yaml"] }
+
+[profile.dev.package.insta]
+opt-level = 3
+
+[profile.dev.package.similar]
+opt-level = 3
+

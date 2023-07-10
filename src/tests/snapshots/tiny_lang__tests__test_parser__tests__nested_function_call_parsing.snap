@@ -1,0 +1,47 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(code).parse()"
+---
+Ok(
+    [
+        Expr(
+            Call(
+                FunctionCall {
+                    parameters: [
+                        Infix(
+                            Plus,
+                            Literal(
+                                UnsignedInteger(
+                                    35,
+                                ),
+                            ),
+                            Literal(
+                                UnsignedInteger(
+                                    3435,
+                                ),
+                            ),
+                        ),
+                        Call(
+                            FunctionCall {
+                                parameters: [
+                                    Literal(
+                                        UnsignedInteger(
+                                            34535,
+                                        ),
+                                    ),
+                                    Literal(
+                                        UnsignedInteger(
+                                            355,
+                                        ),
+                                    ),
+                                ],
+                                name: "another_func",
+                            },
+                        ),
+                    ],
+                    name: "function_call",
+                },
+            ),
+        ),
+    ],
+)
