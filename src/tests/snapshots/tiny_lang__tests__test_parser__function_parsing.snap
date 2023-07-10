@@ -1,0 +1,61 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(code).parse()"
+---
+Ok(
+    [
+        Function(
+            Function {
+                name: "return_something",
+                params: [
+                    (
+                        Ident(
+                            "a",
+                        ),
+                        UnsignedInteger,
+                    ),
+                ],
+                return_type: Some(
+                    Bool,
+                ),
+                body: [
+                    Let(
+                        Ident(
+                            "something",
+                        ),
+                        Literal(
+                            Bool(
+                                false,
+                            ),
+                        ),
+                    ),
+                    Let(
+                        Ident(
+                            "another_var",
+                        ),
+                        Infix(
+                            Plus,
+                            Literal(
+                                UnsignedInteger(
+                                    3535,
+                                ),
+                            ),
+                            Literal(
+                                UnsignedInteger(
+                                    35,
+                                ),
+                            ),
+                        ),
+                    ),
+                    Return(
+                        Ident(
+                            Ident(
+                                "something",
+                            ),
+                        ),
+                    ),
+                ],
+            },
+        ),
+    ],
+)

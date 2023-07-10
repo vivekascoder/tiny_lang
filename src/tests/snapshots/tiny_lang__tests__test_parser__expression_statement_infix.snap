@@ -1,0 +1,31 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(code).parse()"
+---
+Ok(
+    [
+        Expr(
+            Infix(
+                Plus,
+                Infix(
+                    Plus,
+                    Literal(
+                        UnsignedInteger(
+                            5456,
+                        ),
+                    ),
+                    Literal(
+                        UnsignedInteger(
+                            33563,
+                        ),
+                    ),
+                ),
+                Literal(
+                    UnsignedInteger(
+                        34,
+                    ),
+                ),
+            ),
+        ),
+    ],
+)
