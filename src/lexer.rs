@@ -15,10 +15,18 @@ impl Lexer {
     pub fn new(s: &str) -> Self {
         Self {
             cur: 0,
-            row: 0,
+            row: 1,
             col: 0,
             source: s.chars().collect(),
         }
+    }
+
+    pub fn get_row(&self) -> usize {
+        self.row
+    }
+
+    pub fn get_col(&self) -> usize {
+        self.col
     }
 
     fn token(&self, type_: TokenType, pos: (usize, usize)) -> Token {

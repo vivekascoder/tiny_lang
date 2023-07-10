@@ -5,7 +5,7 @@ pub mod tests {
 
     #[test]
     fn test_let_statement_parsing() {
-        let code = "let something = 454 + 3 * 4 - 35;";
+        let code = "let something = 454 + 3 * 4 - 35; ";
         let mut parser = Parser::new(code);
         // println!("Parsed statements: {:#?}", parser.parse());
         assert_eq!(
@@ -151,5 +151,57 @@ pub mod tests {
             )]),
         })];
         assert_eq_ast(code, ast);
+    }
+
+    #[test]
+    fn test_function_call_parsing() {
+        let code = r#"
+        function_call(35 + 3435, some_var);
+        "#;
+        println!("{:#?}", Parser::new(code).parse().unwrap());
+        assert_eq_ast(
+            code,
+            vec![Statement::Expr(Expr::Call(FunctionCall {
+                parameters: vec![
+                    Expr::Infix(
+                        Infix::Plus,
+                        Box::new(Expr::Literal(Literal::UnsignedInteger(35))),
+                        Box::new(Expr::Literal(Literal::UnsignedInteger(3435))),
+                    ),
+                    Expr::Ident(Ident("some_var".to_string())),
+                ],
+                name: "function_call".to_string(),
+            }))],
+        )
+    }
+
+    #[test]
+    fn test_nested_function_call_parsing() {
+        let code = r#"
+        function_call(35 + 3435, another_func(34535, 355));
+        "#;
+        println!("{:#?}", Parser::new(code).parse().unwrap());
+        //     assert_eq_ast(
+        //         code,
+        //         vec![Statement::Expr(Expr::Call(FunctionCall {
+        //             parameters: vec![
+        //                 Expr::Infix(
+        //                     Infix::Plus,
+        //                     Box::new(Expr::Literal(Literal::UnsignedInteger(35))),
+        //                     Box::new(Expr::Literal(Literal::UnsignedInteger(3435))),
+        //                 ),
+        //                 Expr::Ident(Ident("some_var".to_string())),
+        //             ],
+        //             name: "function_call".to_string(),
+        //         }))],
+        //     )
+    }
+
+    #[test]
+    fn test_expression_statement_infix() {
+        let code = r#"
+        5456 + 33563 + 34;
+        "#;
+        println!("{:#?}", Parser::new(code).parse().unwrap());
     }
 }

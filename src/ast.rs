@@ -22,6 +22,13 @@ pub enum Expr {
     Infix(Infix, Box<Expr>, Box<Expr>),
     Prefix(Prefix, Box<Expr>),
     Literal(Literal),
+    Call(FunctionCall),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FunctionCall {
+    pub parameters: Vec<Expr>,
+    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -73,6 +80,7 @@ pub enum Statement {
     Function(Function),
     Return(Expr),
     If(Condition),
+    Expr(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq)]

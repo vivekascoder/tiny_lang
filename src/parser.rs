@@ -73,15 +73,30 @@ impl Parser {
         let expr = self.parse_expression(Precedence::Lowest)?;
 
         if !self.expect_next_token(&TokenType::SemiColon)? {
-            bail!("`;` not found")
+            bail!(
+                "Line: {}, Col: {}, `;` not found",
+                self.lexer.get_row(),
+                self.lexer.get_col()
+            )
         }
         self.bump()?;
 
         Ok(Statement::Let(Ident(name), expr))
     }
 
-    fn parse_expression_statement(&self) -> Result<Statement> {
-        todo!()
+    fn parse_expression_statement(&mut self) -> Result<Statement> {
+        match self.parse_expression(Precedence::Lowest) {
+            Ok(v) => {
+                if !self.expect_next_token(&TokenType::SemiColon)? {
+                    bail!("`;` not found at the end in expression statment.");
+                }
+                self.bump()?;
+                Ok(Statement::Expr(v))
+            }
+            Err(e) => {
+                bail!("error while parsing expression statement: {:?}", e);
+            }
+        }
     }
 
     fn keyword_to_type(&self, tok: &TokenType) -> Result<Type> {
@@ -257,10 +272,7 @@ impl Parser {
             TokenType::KeywordIf => self.parse_if_statement()?,
             TokenType::KeywordFun => self.parse_function_statement()?,
             TokenType::KeywordReturn => self.parse_return_statement()?,
-            // leave the rest for now.
-            _ => {
-                bail!("invalid statement, {:?}", self.current_token);
-            }
+            _ => self.parse_expression_statement()?,
         })
     }
 
@@ -311,6 +323,7 @@ impl Parser {
                     Err(e) => bail!("error while parsing expression for prefix with {:#?}", e),
                 }
             }
+
             _ => {
                 bail!(
                     "no prefix parse function found for {:?}",
@@ -324,6 +337,10 @@ impl Parser {
         while !self.next_token_is(&TokenType::SemiColon)
             && precedence < self.next_token_precedence()
         {
+            println!(
+                "next token while parsing expression right -> {:?}",
+                self.next_token
+            );
             match self.next_token {
                 TokenType::Plus
                 | TokenType::Minus
@@ -362,6 +379,39 @@ impl Parser {
                         Err(e) => {
                             bail!("error while parsing expr: {:?}", e);
                         }
+                    }
+                }
+                TokenType::LParen => {
+                    let mut params: Vec<Expr> = vec![];
+                    self.bump()?;
+
+                    while !self.current_token_is(&TokenType::RParen) {
+                        self.bump()?;
+                        let param = self.parse_expression(Precedence::Lowest)?;
+                        println!("param: {:?}", param);
+                        params.push(param);
+
+                        println!("{:?}, {:?}", self.current_token, self.next_token);
+                        if !(self.next_token_is(&TokenType::Comma)
+                            || self.next_token_is(&TokenType::RParen))
+                        {
+                            bail!("sep , while param func");
+                        }
+                        self.bump()?;
+                        println!(" -->{:?}, {:?}", self.current_token, self.next_token);
+                    }
+
+                    // self.bump()?;
+                    println!(" -->{:?}, {:?}", self.current_token, self.next_token);
+                    // self.bump()?;
+
+                    if let Expr::Ident(i) = left {
+                        left = Expr::Call(FunctionCall {
+                            parameters: params,
+                            name: i.0,
+                        })
+                    } else {
+                        bail!("left is not an identifier.");
                     }
                 }
                 _ => return Ok(left),

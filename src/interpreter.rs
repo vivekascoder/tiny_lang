@@ -81,6 +81,9 @@ impl Interpreter {
             Expr::Prefix(op, expr) => Ok(self.eval_prefix_expr(op, *expr)?),
             Expr::Literal(l) => Ok(self.eval_literal(l)?),
             Expr::Ident(variable) => Ok(self.eval_ident(variable)?),
+            _ => {
+                todo!()
+            }
         }
     }
 
