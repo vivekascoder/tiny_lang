@@ -322,14 +322,21 @@ impl Parser {
             TokenType::Boolean(val) => Expr::Literal(Literal::Bool(val)),
             TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
             TokenType::SQuote => {
+                use TokenType::*;
                 // Parse character.
                 let char_val = match self.next_token {
-                    TokenType::Identifier(ref i) => {
+                    Identifier(ref i) => {
                         if i.len() != 1 {
                             bail!("Character should be of length 1");
                         }
                         i.clone()
                     }
+
+                    NewLine => '\n'.to_string(),
+                    Tab => '\t'.to_string(),
+                    Space => ' '.to_string(),
+                    BSlash => '\\'.to_string(),
+
                     _ => {
                         bail!("char not found after `'` instead got {:?}", self.next_token);
                     }

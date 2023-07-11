@@ -2,4 +2,6 @@ let var1 = 3535;
 let var2 = false;
 
 print(var1);
+print('\n');
 print(var2);
+print('\n');

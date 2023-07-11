@@ -155,8 +155,12 @@ pub enum TokenType {
     LBrace, // {
     RBrace, // }
     Comma,
-    SQuote, // '
-    DQuote, // "
+    SQuote,  // '
+    DQuote,  // "
+    BSlash,  // \
+    NewLine, // \n
+    Tab,     // \t
+    Space,   // ' '
 
     // Keywords
     KeywordLet,
@@ -171,6 +175,54 @@ pub enum TokenType {
 
     // Symbol
     SymbolReturn,
+}
+
+// implement the Debug trait for all the variants of TokenType
+impl Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            TokenType::EOF => write!(f, "EOF"),
+            TokenType::Identifier(s) => write!(f, "{}", s),
+            TokenType::Usize(i) => write!(f, "{}", i),
+            TokenType::Boolean(b) => write!(f, "{}", b),
+            TokenType::Colon => write!(f, ":"),
+            TokenType::SemiColon => write!(f, ";"),
+            TokenType::Equal => write!(f, "="),
+            TokenType::DoubleEqual => write!(f, "=="),
+            TokenType::Plus => write!(f, "+"),
+            TokenType::Minus => write!(f, "-"),
+            TokenType::Multiply => write!(f, "*"),
+            TokenType::Divide => write!(f, "/"),
+            TokenType::Mod => write!(f, "%"),
+            TokenType::NotEqual => write!(f, "!="),
+            TokenType::LessThan => write!(f, "<"),
+            TokenType::LessThanEqual => write!(f, "<="),
+            TokenType::GreaterThan => write!(f, ">"),
+            TokenType::GreaterThanEqual => write!(f, ">="),
+            TokenType::Bang => write!(f, "!"),
+            TokenType::LParen => write!(f, "("),
+            TokenType::RParen => write!(f, ")"),
+            TokenType::LBrace => write!(f, "{{"),
+            TokenType::RBrace => write!(f, "}}"),
+            TokenType::Comma => write!(f, ","),
+            TokenType::SQuote => write!(f, "'"),
+            TokenType::DQuote => write!(f, "\""),
+            TokenType::BSlash => write!(f, "\\"),
+            TokenType::NewLine => write!(f, "\n"),
+            TokenType::Tab => write!(f, "\t"),
+            TokenType::Space => write!(f, " "),
+            TokenType::KeywordLet => write!(f, "let"),
+            TokenType::KeywordUsize => write!(f, "usize"),
+            TokenType::KeywordBool => write!(f, "bool"),
+            TokenType::KeywordFun => write!(f, "fun"),
+            TokenType::KeywordReturn => write!(f, "return"),
+            TokenType::KeywordIf => write!(f, "if"),
+            TokenType::KeywordElse => write!(f, "else"),
+            TokenType::KeywordVoid => write!(f, "void"),
+            TokenType::KeywordChar => write!(f, "chat"),
+            TokenType::SymbolReturn => write!(f, "=>"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

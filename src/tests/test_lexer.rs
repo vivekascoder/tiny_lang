@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::lexer::Lexer;
+use crate::tests::setup;
 
 #[test]
 fn test_lexing_let_syntax() {
@@ -9,12 +10,14 @@ fn test_lexing_let_syntax() {
 
 #[test]
 fn test_lexing_char() {
-    let source = "'a'";
+    setup();
+    let source = "'\\n'";
     insta::assert_debug_snapshot!(Lexer::new("", source).into_iter().collect::<Vec<Token>>());
 }
 
 #[test]
 fn test_function_declaration() {
+    setup();
     let source = r#"
         fun calculate_something(a: usize, b: usize) => bool {
             if (a > b) {

@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
+use log::info;
 use std::fs;
 use tiny_lang::parser::Parser as AST;
 use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::Lexer};
@@ -28,6 +29,8 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = TinyLang::parse();
+    env_logger::init();
+    info!("Running...");
 
     match &cli.command {
         Commands::Interpret { file } => {
