@@ -1,0 +1,10 @@
+
+
+// This is a single line comment.
+let something = 3535;
+
+
+/*
+This is an example of multi line comment
+*/
+let s = 353;

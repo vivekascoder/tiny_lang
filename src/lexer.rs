@@ -16,11 +16,15 @@ impl Lexer {
     pub fn new(module: &str, s: &str) -> Self {
         Self {
             cur: 0,
-            row: 1,
+            row: 0,
             col: 0,
             module: module.to_string(),
             source: s.chars().collect(),
         }
+    }
+
+    pub fn module(&self) -> String {
+        self.module.clone()
     }
 
     pub fn get_row(&self) -> usize {
@@ -59,8 +63,8 @@ impl Lexer {
                     self.bump();
                 }
                 '\n' => {
-                    self.col += 1;
-                    self.row = 0;
+                    self.col = 0;
+                    self.row += 1;
                     self.bump();
                 }
                 _ => {
@@ -176,12 +180,32 @@ impl Lexer {
             '/' => {
                 self.bump();
                 match self.current() {
+                    // single line comment
                     '/' => loop {
                         self.bump();
                         match self.current() {
                             '\n' => {
                                 self.bump();
                                 return Ok(self.next()?);
+                            }
+                            _ => {
+                                continue;
+                            }
+                        };
+                    },
+
+                    // multi line comment
+                    '*' => loop {
+                        self.bump();
+                        match self.current() {
+                            '*' => {
+                                self.bump();
+                                if self.current() == '/' {
+                                    self.bump();
+                                    return Ok(self.next()?);
+                                } else {
+                                    continue;
+                                }
                             }
                             _ => {
                                 continue;

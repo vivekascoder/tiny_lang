@@ -23,6 +23,18 @@ impl Parser {
         parser
     }
 
+    pub fn module(&self) -> String {
+        self.lexer.module()
+    }
+
+    pub fn get_row(&self) -> usize {
+        self.lexer.get_row()
+    }
+
+    pub fn get_col(&self) -> usize {
+        self.lexer.get_col()
+    }
+
     fn bump(&mut self) -> Result<()> {
         self.current_token = self.next_token.clone();
         self.next_token = self.lexer.next()?.type_;

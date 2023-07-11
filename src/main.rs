@@ -38,7 +38,12 @@ fn main() -> Result<()> {
             }
 
             let program = fs::read_to_string(&file_name)?;
-            Interpreter::new(&file_name, &program).eval()?;
+            let mut i = Interpreter::new(&file_name, &program);
+
+            if let Err(e) = i.eval() {
+                // TODO: track last token position
+                eprintln!("{}:{}:{} {}", i.module(), i.get_row(), i.get_col(), e);
+            }
         }
         Commands::Lex { file } => {
             let file_name = file.clone().unwrap_or("./main.tiny".to_string());

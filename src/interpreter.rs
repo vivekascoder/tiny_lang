@@ -19,6 +19,18 @@ impl Interpreter {
         }
     }
 
+    pub fn module(&self) -> String {
+        self.parser.module()
+    }
+
+    pub fn get_row(&self) -> usize {
+        self.parser.get_row()
+    }
+
+    pub fn get_col(&self) -> usize {
+        self.parser.get_col()
+    }
+
     fn eval_infix_expr(&mut self, infix: Infix, left: Expr, right: Expr) -> Result<ExprResult> {
         let left_result = self.eval_expr(left)?;
         let right_result = self.eval_expr(right)?;
