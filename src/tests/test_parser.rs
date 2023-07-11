@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::parser::Parser;
+use crate::{parser::Parser, tests::setup};
 
 #[test]
 fn test_let_statement_parsing() {
@@ -74,7 +74,7 @@ fn test_expression_statement_infix() {
 
 #[test]
 fn test_function_and_call() {
-    env_logger::init();
+    setup();
     let code = r#"
     let a = 445;
     let b = 45;

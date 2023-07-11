@@ -175,7 +175,21 @@ impl Lexer {
             }
             '/' => {
                 self.bump();
-                Ok(self.token(TokenType::Divide, (self.cur - 1, self.cur)))
+                match self.current() {
+                    '/' => loop {
+                        self.bump();
+                        match self.current() {
+                            '\n' => {
+                                self.bump();
+                                return self.next();
+                            }
+                            _ => {
+                                continue;
+                            }
+                        };
+                    },
+                    _ => Ok(self.token(TokenType::Divide, (self.cur - 1, self.cur))),
+                }
             }
             '!' => {
                 self.bump();

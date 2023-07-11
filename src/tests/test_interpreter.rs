@@ -1,12 +1,13 @@
 use log::info;
 
 use crate::ast::*;
+use crate::tests::setup;
 use crate::{interpreter::Interpreter, parser::Parser};
 
 #[test]
 
 fn test_is_type_expr_result_same() {
-    env_logger::init();
+    setup();
     assert_eq!(
         Interpreter::is_type_expr_result_same(&None, &ExprResult::Void),
         true
@@ -43,7 +44,7 @@ fn test_is_type_expr_result_same() {
 
 #[test]
 fn does_interpreter_starts() {
-    env_logger::init();
+    setup();
     let source = r#"
         let a = 454 + 3636 * 3; 
         let b = 45 / 3;
@@ -64,7 +65,7 @@ fn does_interpreter_starts() {
 
 #[test]
 fn does_if_eval_works() {
-    env_logger::init();
+    setup();
     let code = r#"
     let a = 445;
     let b = 45;
