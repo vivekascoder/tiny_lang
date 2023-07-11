@@ -7,16 +7,18 @@ pub struct Lexer {
     cur: usize,
     row: usize,
     col: usize,
+    module: String,
     source: Vec<char>,
 }
 
 /// Parse `let var1: number = 34 + 353;`
 impl Lexer {
-    pub fn new(s: &str) -> Self {
+    pub fn new(module: &str, s: &str) -> Self {
         Self {
             cur: 0,
             row: 1,
             col: 0,
+            module: module.to_string(),
             source: s.chars().collect(),
         }
     }

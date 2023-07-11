@@ -11,9 +11,9 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(source: &str) -> Self {
+    pub fn new(module: &str, source: &str) -> Self {
         let mut parser = Self {
-            lexer: Lexer::new(source),
+            lexer: Lexer::new(module, source),
             current_token: TokenType::EOF,
             next_token: TokenType::EOF,
             errors: vec![],

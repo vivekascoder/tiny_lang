@@ -11,9 +11,9 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn new(source: &str) -> Self {
+    pub fn new(module: &str, source: &str) -> Self {
         Self {
-            parser: Parser::new(source),
+            parser: Parser::new(module, source),
             env: Env::new(),
             native: Native::new(),
         }

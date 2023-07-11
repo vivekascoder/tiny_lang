@@ -4,7 +4,7 @@ use crate::parser::Parser;
 #[test]
 fn test_let_statement_parsing() {
     let code = "let something = 454 + 3 * 4 - 35; ";
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -13,13 +13,13 @@ fn test_multiple_let_statement_parsing() {
         let something = 454 + 3 * 4 - 35;
         let a = 35 / 3;
         "#;
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
 fn test_prefix_expression_parsing() {
     let code = "let val = +454;";
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -32,7 +32,7 @@ fn test_function_parsing() {
         }
         "#;
 
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn test_if_statement_parsing() {
             let somethine = 0;
         }
         "#;
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn test_function_call_parsing() {
     let code = r#"
         function_call(35 + 3435, some_var);
         "#;
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -60,7 +60,7 @@ fn test_nested_function_call_parsing() {
     let code = r#"
         function_call(35 + 3435, another_func(34535, 355));
         "#;
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -68,7 +68,7 @@ fn test_expression_statement_infix() {
     let code = r#"
         5456 + 33563 + 34;
         "#;
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
@@ -89,5 +89,5 @@ fn test_function_and_call() {
 
     sum(a, b);
     "#;
-    insta::assert_debug_snapshot!(Parser::new(code).parse());
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }

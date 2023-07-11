@@ -33,8 +33,8 @@ fn main() -> Result<()> {
                 bail!("Filename {:?} doesn't exists.", &file_name);
             }
 
-            let program = fs::read_to_string(file_name)?;
-            Interpreter::new(&program).eval()?;
+            let program = fs::read_to_string(&file_name)?;
+            Interpreter::new(&file_name, &program).eval()?;
         }
     }
 

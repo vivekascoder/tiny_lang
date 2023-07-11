@@ -1,0 +1,5 @@
+let var1 = 3535;
+let var2 = false;
+
+print(var1);
+print(var2);

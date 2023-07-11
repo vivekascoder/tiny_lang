@@ -42,7 +42,7 @@ fn does_interpreter_starts() {
         print(re);
         "#;
 
-    let mut i = Interpreter::new(source);
-    info!("parsed: {:#?}", Parser::new(source).parse());
+    let mut i = Interpreter::new("", source);
+    info!("parsed: {:#?}", Parser::new("", source).parse());
     i.eval().unwrap();
 }
