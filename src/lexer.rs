@@ -1,5 +1,6 @@
 use crate::ast::*;
 use anyhow::{bail, Result};
+use log::info;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lexer {
@@ -51,6 +52,7 @@ impl Lexer {
             "false" => Some(TokenType::Boolean(false)),
             "bool" => Some(TokenType::KeywordBool),
             "void" => Some(TokenType::KeywordVoid),
+            "char" => Some(TokenType::KeywordChar),
             _ => None,
         }
     }
@@ -98,7 +100,7 @@ impl Lexer {
             return Ok(self.token(TokenType::EOF, (self.cur, self.cur)));
             // bail!("EOF reached");
         }
-
+        info!("current token: {:?}", self.current());
         match self.current() {
             ';' => {
                 self.bump();
@@ -126,6 +128,37 @@ impl Lexer {
             '(' => {
                 self.bump();
                 Ok(self.token(TokenType::LParen, (self.cur - 1, self.cur)))
+            }
+
+            // tokenize whitespace char.
+            '\\' => {
+                info!("encounterd \\");
+                self.bump();
+                info!("cur encounterd {}", self.current());
+                match self.current() {
+                    'n' => {
+                        self.bump();
+                        return Ok(self.token(TokenType::NewLine, (self.cur - 2, self.cur)));
+                    }
+                    't' => {
+                        info!("encounterd n");
+                        Ok(self.token(TokenType::Tab, (self.cur - 2, self.cur)))
+                    }
+                    // Rust doesn't have `\v` ?
+                    // 'v' => Ok(self.token(TokenType::VTab, (self.cur - 2, self.cur))),
+                    '\\' => {
+                        self.bump();
+                        Ok(self.token(TokenType::BSlash, (self.cur - 2, self.cur)))
+                    }
+                    _ => {
+                        bail!("`\\{:?}` is not a valid character.", self.current());
+                    }
+                }
+            }
+
+            '\'' => {
+                self.bump();
+                Ok(self.token(TokenType::SQuote, (self.cur - 1, self.cur)))
             }
 
             ')' => {

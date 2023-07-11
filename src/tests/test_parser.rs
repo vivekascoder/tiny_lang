@@ -18,6 +18,18 @@ fn test_multiple_let_statement_parsing() {
 }
 
 #[test]
+fn test_char_parsing() {
+    let code = "'a';";
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
+fn test_char_parsing_dual() {
+    let code = "'\\n' > 'n';";
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
 fn test_prefix_expression_parsing() {
     let code = "let val = +454;";
     insta::assert_debug_snapshot!(Parser::new("", code).parse());
