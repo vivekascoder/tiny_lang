@@ -36,6 +36,7 @@ fn does_interpreter_starts() {
         }
 
         let re = something(35);
+        print(re);
         "#;
 
     let mut i = Interpreter::new(source);

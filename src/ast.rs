@@ -1,5 +1,7 @@
 // Types for our language.
 
+use std::fmt::Display;
+
 pub type Program = Vec<Statement>;
 pub type BlockStatement = Vec<Statement>;
 
@@ -32,10 +34,26 @@ pub struct FunctionCall {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct NativeFunctionCall {
+    pub parameters: Vec<ExprResult>,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum ExprResult {
     Bool(bool),
     UnsignedInteger(usize),
     Void,
+}
+
+impl Display for ExprResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bool(b) => write!(f, "{}", b),
+            Self::UnsignedInteger(i) => write!(f, "{}", i),
+            Self::Void => write!(f, ""),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

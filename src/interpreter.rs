@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::{ast::*, native::Native};
 use anyhow::{bail, Result};
 
 use crate::{env::Env, parser::Parser};
@@ -6,6 +6,7 @@ use crate::{env::Env, parser::Parser};
 pub struct Interpreter {
     parser: Parser,
     env: Env,
+    native: Native,
 }
 
 impl Interpreter {
@@ -13,6 +14,7 @@ impl Interpreter {
         Self {
             parser: Parser::new(source),
             env: Env::new(),
+            native: Native::new(),
         }
     }
 
@@ -89,13 +91,18 @@ impl Interpreter {
 
     fn eval_fn_call(&mut self, fn_call: FunctionCall) -> Result<ExprResult> {
         // make sure the function exists in memory.
-        if !self.env.exists(&fn_call.name) {
+        if !(self.env.exists(&fn_call.name) || self.native.is_native(&fn_call.name)) {
             bail!("Function {:?} doesn't exists.", fn_call.name);
         }
 
         let mut expr_results: Vec<ExprResult> = vec![];
         for expr in fn_call.parameters {
             expr_results.push(self.eval_expr(expr)?);
+        }
+
+        if self.native.is_native(&fn_call.name) {
+            // execute native function.
+            return Ok(self.native.execute(&fn_call.name, expr_results)?);
         }
 
         let fun = match self.env.get_ref(&fn_call.name) {
