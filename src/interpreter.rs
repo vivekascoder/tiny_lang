@@ -34,6 +34,14 @@ impl Interpreter {
                         Infix::Minus => Ok(ExprResult::UnsignedInteger(l - r)),
                         Infix::Multiply => Ok(ExprResult::UnsignedInteger(l * r)),
                         Infix::Divide => Ok(ExprResult::UnsignedInteger(l / r)),
+
+                        // Comparison
+                        Infix::GreaterThan => Ok(ExprResult::Bool(l > r)),
+                        Infix::GreaterThanEqual => Ok(ExprResult::Bool(l >= r)),
+                        Infix::LessThan => Ok(ExprResult::Bool(l < r)),
+                        Infix::LessThanEqual => Ok(ExprResult::Bool(l <= r)),
+                        Infix::DoubleEqual => Ok(ExprResult::Bool(l == r)),
+                        Infix::NotEqual => Ok(ExprResult::Bool(l != r)),
                         _ => {
                             bail!("sf");
                         }
@@ -59,6 +67,9 @@ impl Interpreter {
                 } else {
                     bail!("Types don't match.")
                 }
+            }
+            ExprResult::Return(_) => {
+                bail!("Infix expressions can not have return.");
             }
         }
     }
@@ -135,7 +146,7 @@ impl Interpreter {
         let zipped = std::iter::zip(fun_params_clone, expr_results.clone());
         for val in zipped {
             // Assert the type of parameter.
-            if !Self::is_type_expr_result_same(Some(val.0 .1.clone()), &val.1) {
+            if !Self::is_type_expr_result_same(&Some(val.0 .1.clone()), &val.1) {
                 bail!(
                     "Expr result {:?}, isn't valid for type {:?}",
                     &val.1,
@@ -150,7 +161,7 @@ impl Interpreter {
         let returned_value = self.eval_block_statement(fun_body)?;
         info!("returned_val: {:?} {:?}", &returned_value, &fun_return);
 
-        if !Self::is_type_expr_result_same(fun_return.clone(), &returned_value) {
+        if !Self::is_type_expr_result_same(&fun_return, &returned_value) {
             info!("-----");
             bail!(
                 "Return value: {:?}, is not of type {:?}",
@@ -166,20 +177,21 @@ impl Interpreter {
 
     fn eval_block_statement(&mut self, statements: BlockStatement) -> Result<ExprResult> {
         info!("Block: {:?} {}", &statements, statements.len());
-        let mut should_return = false;
         for s in statements {
-            if let Statement::Return(_) = &s {
-                should_return = true;
-            }
             let r = self.eval_statement(s)?;
-            if should_return {
-                return Ok(r);
+            info!("statement resulted in {:?}", &r);
+            if let ExprResult::Return(r) = r {
+                info!("Block resulted {:?}", &r);
+                return Ok(ExprResult::Return(r));
             }
         }
         Ok(ExprResult::Void)
     }
 
-    pub fn is_type_expr_result_same(type_: Option<Type>, expr_result: &ExprResult) -> bool {
+    pub fn is_type_expr_result_same(type_: &Option<Type>, expr_result: &ExprResult) -> bool {
+        if let ExprResult::Return(r) = expr_result {
+            return Self::is_type_expr_result_same(type_, r);
+        }
         match type_ {
             None => {
                 if let ExprResult::Void = expr_result {
@@ -207,6 +219,35 @@ impl Interpreter {
         }
     }
 
+    fn eval_if_statement(&mut self, if_: Condition) -> Result<ExprResult> {
+        let expr_result = self.eval_expr(if_.condition)?;
+
+        info!("If condition result is {:?}", expr_result);
+
+        if let ExprResult::Bool(is_true) = expr_result {
+            if is_true {
+                let v = self.eval_block_statement(if_.if_body)?;
+                info!("If body resulted in {:?}", &v);
+                return Ok(v);
+            }
+        } else {
+            bail!("The condition resulted in {:?} and not bool.", &expr_result);
+        }
+
+        if let None = if_.else_body {
+            info!("else body isn't there.");
+            return Ok(ExprResult::Void);
+        }
+
+        let else_body = if_.else_body.unwrap();
+        let scoped_env = Env::new_with_outer(Box::new(self.env.clone()));
+        self.env = scoped_env;
+        let v = self.eval_block_statement(else_body)?;
+        self.env = self.env.cloned_outer();
+        info!("else body resulted in {:?}", &v);
+        return Ok(v);
+    }
+
     fn eval_expr(&mut self, expr: Expr) -> Result<ExprResult> {
         match expr {
             Expr::Infix(infix, left, right) => Ok(self.eval_infix_expr(infix, *left, *right)?),
@@ -229,6 +270,7 @@ impl Interpreter {
                     .insert(ident.0, MemoryObject::ExprResult(expr_result));
                 Ok(ExprResult::Void)
             }
+            Statement::If(if_) => Ok(self.eval_if_statement(if_)?),
             Statement::Function(fun) => {
                 self.env
                     .insert(fun.name.clone(), MemoryObject::Function(fun));
@@ -236,7 +278,7 @@ impl Interpreter {
             }
             Statement::Return(expr) => {
                 let expr_result = self.eval_expr(expr)?;
-                Ok(expr_result)
+                Ok(ExprResult::Return(Box::new(expr_result)))
             }
             Statement::Expr(expr) => {
                 let _ = self.eval_expr(expr)?;

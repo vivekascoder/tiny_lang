@@ -1,4 +1,5 @@
-use crate::ast::*;
+use log::info;
+
 use crate::parser::Parser;
 
 #[test]
@@ -73,6 +74,7 @@ fn test_expression_statement_infix() {
 
 #[test]
 fn test_function_and_call() {
+    env_logger::init();
     let code = r#"
     let a = 445;
     let b = 45;
@@ -89,5 +91,7 @@ fn test_function_and_call() {
 
     sum(a, b);
     "#;
-    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+    let ast = Parser::new("", code).parse();
+    info!("AST generated for the program: {:#?}", &ast);
+    insta::assert_debug_snapshot!(&ast);
 }

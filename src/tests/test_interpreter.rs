@@ -6,24 +6,39 @@ use crate::{interpreter::Interpreter, parser::Parser};
 #[test]
 
 fn test_is_type_expr_result_same() {
+    env_logger::init();
     assert_eq!(
-        Interpreter::is_type_expr_result_same(None, &ExprResult::Void),
+        Interpreter::is_type_expr_result_same(&None, &ExprResult::Void),
         true
     );
     assert_eq!(
-        Interpreter::is_type_expr_result_same(None, &ExprResult::Bool(false)),
+        Interpreter::is_type_expr_result_same(&None, &ExprResult::Bool(false)),
         false
     );
 
     assert_eq!(
-        Interpreter::is_type_expr_result_same(Some(Type::Bool), &ExprResult::Bool(false)),
+        Interpreter::is_type_expr_result_same(&Some(Type::Bool), &ExprResult::Bool(false)),
         true
     );
 
     assert_eq!(
-        Interpreter::is_type_expr_result_same(None, &ExprResult::UnsignedInteger(465)),
+        Interpreter::is_type_expr_result_same(&None, &ExprResult::UnsignedInteger(465)),
         false
     );
+    assert_eq!(
+        Interpreter::is_type_expr_result_same(
+            &Some(Type::UnsignedInteger),
+            &ExprResult::UnsignedInteger(465)
+        ),
+        true
+    );
+    assert_eq!(
+        Interpreter::is_type_expr_result_same(
+            &Some(Type::UnsignedInteger),
+            &ExprResult::Return(Box::new(ExprResult::UnsignedInteger(345)))
+        ),
+        true
+    )
 }
 
 #[test]
@@ -44,5 +59,30 @@ fn does_interpreter_starts() {
 
     let mut i = Interpreter::new("", source);
     info!("parsed: {:#?}", Parser::new("", source).parse());
+    i.eval().unwrap();
+}
+
+#[test]
+fn does_if_eval_works() {
+    env_logger::init();
+    let code = r#"
+    let a = 445;
+    let b = 45;
+
+
+    fun sum(a: usize, b: usize) => usize {
+        let c = 0;
+        if (a != 0) {
+            print(c);
+            let c = a + b;
+            return c;
+        } else {
+            return b;
+        }
+    }
+
+    print(sum(a, b));
+    "#;
+    let mut i = Interpreter::new("", code);
     i.eval().unwrap();
 }

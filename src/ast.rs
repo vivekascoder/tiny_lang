@@ -44,6 +44,7 @@ pub enum ExprResult {
     Bool(bool),
     UnsignedInteger(usize),
     Void,
+    Return(Box<ExprResult>),
 }
 
 impl Display for ExprResult {
@@ -52,6 +53,7 @@ impl Display for ExprResult {
             Self::Bool(b) => write!(f, "{}", b),
             Self::UnsignedInteger(i) => write!(f, "{}", i),
             Self::Void => write!(f, ""),
+            Self::Return(v) => write!(f, "{}", *v),
         }
     }
 }
