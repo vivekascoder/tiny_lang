@@ -1,0 +1,24 @@
+---
+source: src/tests/test_parser.rs
+assertion_line: 29
+expression: "Parser::new(\"\", code).parse()"
+---
+Ok(
+    [
+        Expr(
+            Infix(
+                GreaterThan,
+                Literal(
+                    Char(
+                        '\n',
+                    ),
+                ),
+                Literal(
+                    Char(
+                        'n',
+                    ),
+                ),
+            ),
+        ),
+    ],
+)
