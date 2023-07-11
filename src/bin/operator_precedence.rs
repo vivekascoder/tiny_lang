@@ -1,5 +1,7 @@
 use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, rc::Rc};
 
+use log::info;
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct Env {
     store: HashMap<String, String>,
@@ -48,8 +50,8 @@ fn main() -> anyhow::Result<()> {
     sub_scoped_env.insert("i".to_string(), "i".to_string());
     sub_scoped_env.insert("j".to_string(), "j".to_string());
 
-    println!("Env: {:#?}", &sub_scoped_env);
-    println!(
+    info!("Env: {:#?}", &sub_scoped_env);
+    info!(
         "Scoped VAr: {:?}",
         sub_scoped_env.get("outer_b".to_string())
     );

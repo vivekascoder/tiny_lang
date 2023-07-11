@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::lexer::Lexer;
 use anyhow::{anyhow, bail, Result};
+use log::info;
 
 pub struct Parser {
     lexer: Lexer,
@@ -170,7 +171,7 @@ impl Parser {
         }
 
         let mut return_type: Option<Type> = None;
-        println!("Next token is: {:?}", self.next_token);
+        info!("Next token is: {:?}", self.next_token);
         if !self.next_token_is(&TokenType::KeywordVoid) {
             return_type = Some(self.keyword_to_type(&self.next_token)?);
         }
@@ -195,7 +196,7 @@ impl Parser {
     fn parse_block_statement(&mut self) -> Result<BlockStatement> {
         let mut statements: BlockStatement = vec![];
 
-        println!("Current token: {:?}", &self.current_token);
+        info!("Current token: {:?}", &self.current_token);
 
         while !self.current_token_is(&TokenType::RBrace) {
             statements.push(self.parse_statement()?);
@@ -231,7 +232,7 @@ impl Parser {
 
         // condition
         let expr = self.parse_expression(Precedence::Lowest)?;
-        println!("Expression: {:?}", expr);
+        info!("Expression: {:?}", expr);
 
         if !self.expect_next_token(&TokenType::RParen)? {
             bail!(
@@ -271,7 +272,7 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement> {
-        println!("Current Token: {:?}", self.current_token);
+        info!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token {
             TokenType::KeywordLet => self.parse_let_statement()?,
             TokenType::KeywordIf => self.parse_if_statement()?,
@@ -336,13 +337,13 @@ impl Parser {
                 );
             }
         };
-        println!("Left: {:?}", left);
+        info!("Left: {:?}", left);
 
         // Parse the infix
         while !self.next_token_is(&TokenType::SemiColon)
             && precedence < self.next_token_precedence()
         {
-            println!(
+            info!(
                 "next token while parsing expression right -> {:?}",
                 self.next_token
             );
@@ -374,7 +375,7 @@ impl Parser {
                             bail!("not a valid infix operator.");
                         }
                     };
-                    println!("Infix: {:?}", infix);
+                    info!("Infix: {:?}", infix);
 
                     let precedence = self.current_token_precedence();
                     self.bump()?;
@@ -393,21 +394,21 @@ impl Parser {
                     while !self.current_token_is(&TokenType::RParen) {
                         self.bump()?;
                         let param = self.parse_expression(Precedence::Lowest)?;
-                        println!("param: {:?}", param);
+                        info!("param: {:?}", param);
                         params.push(param);
 
-                        println!("{:?}, {:?}", self.current_token, self.next_token);
+                        info!("{:?}, {:?}", self.current_token, self.next_token);
                         if !(self.next_token_is(&TokenType::Comma)
                             || self.next_token_is(&TokenType::RParen))
                         {
                             bail!("sep , while param func");
                         }
                         self.bump()?;
-                        println!(" -->{:?}, {:?}", self.current_token, self.next_token);
+                        info!(" -->{:?}, {:?}", self.current_token, self.next_token);
                     }
 
                     // self.bump()?;
-                    println!(" -->{:?}, {:?}", self.current_token, self.next_token);
+                    info!(" -->{:?}, {:?}", self.current_token, self.next_token);
                     // self.bump()?;
 
                     if let Expr::Ident(i) = left {
@@ -432,7 +433,7 @@ impl Parser {
         while !self.current_token_is(&TokenType::EOF) {
             match self.parse_statement() {
                 Ok(stmt) => {
-                    println!("Statement: {:?}", &stmt);
+                    info!("Statement: {:?}", &stmt);
                     program.push(stmt);
                 }
                 Err(e) => {

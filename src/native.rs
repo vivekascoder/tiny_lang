@@ -1,5 +1,6 @@
 use crate::ast::*;
 use anyhow::{bail, Result};
+use log::info;
 use std::collections::HashMap;
 
 pub struct Native {
@@ -33,7 +34,7 @@ impl Native {
     }
 
     pub fn execute(&self, name: &str, params: Vec<ExprResult>) -> Result<ExprResult> {
-        println!("Executing with {:?}", &params);
+        info!("Executing with {:?}", &params);
         let fun = self.functions.get(name).unwrap();
         Ok(fun(params)?)
     }

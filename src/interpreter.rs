@@ -1,5 +1,6 @@
 use crate::{ast::*, native::Native};
 use anyhow::{bail, Result};
+use log::info;
 
 use crate::{env::Env, parser::Parser};
 
@@ -147,10 +148,10 @@ impl Interpreter {
         }
 
         let returned_value = self.eval_block_statement(fun_body)?;
-        println!("returned_val: {:?} {:?}", &returned_value, &fun_return);
+        info!("returned_val: {:?} {:?}", &returned_value, &fun_return);
 
         if !Self::is_type_expr_result_same(fun_return.clone(), &returned_value) {
-            println!("-----");
+            info!("-----");
             bail!(
                 "Return value: {:?}, is not of type {:?}",
                 &returned_value,
@@ -164,7 +165,7 @@ impl Interpreter {
     }
 
     fn eval_block_statement(&mut self, statements: BlockStatement) -> Result<ExprResult> {
-        println!("Block: {:?} {}", &statements, statements.len());
+        info!("Block: {:?} {}", &statements, statements.len());
         let mut should_return = false;
         for s in statements {
             if let Statement::Return(_) = &s {
@@ -220,7 +221,7 @@ impl Interpreter {
     }
 
     fn eval_statement(&mut self, s: Statement) -> Result<ExprResult> {
-        println!("Current statement: {:?}", &s);
+        info!("Current statement: {:?}", &s);
         match s {
             Statement::Let(ident, expr) => {
                 let expr_result = self.eval_expr(expr)?;
@@ -255,7 +256,7 @@ impl Interpreter {
             let r = self.eval_statement(statement)?;
         }
 
-        println!("Env: {:#?}", self.env);
+        info!("Env: {:#?}", self.env);
 
         Ok(())
     }

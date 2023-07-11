@@ -1,3 +1,5 @@
+use log::info;
+
 use crate::ast::*;
 use crate::{interpreter::Interpreter, parser::Parser};
 
@@ -26,6 +28,7 @@ fn test_is_type_expr_result_same() {
 
 #[test]
 fn does_interpreter_starts() {
+    env_logger::init();
     let source = r#"
         let a = 454 + 3636 * 3; 
         let b = 45 / 3;
@@ -40,6 +43,6 @@ fn does_interpreter_starts() {
         "#;
 
     let mut i = Interpreter::new(source);
-    println!("parsed: {:#?}", Parser::new(source).parse());
+    info!("parsed: {:#?}", Parser::new(source).parse());
     i.eval().unwrap();
 }
