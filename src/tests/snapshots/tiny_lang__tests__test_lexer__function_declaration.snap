@@ -133,8 +133,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
     Token {
         type_: GreaterThan,
         pos: (
-            80,
             81,
+            82,
         ),
     },
     Token {

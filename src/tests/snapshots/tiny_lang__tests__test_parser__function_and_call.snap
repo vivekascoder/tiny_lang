@@ -87,7 +87,17 @@ Ok(
                                     ),
                                 ),
                             ],
-                            else_body: None,
+                            else_body: Some(
+                                [
+                                    Return(
+                                        Ident(
+                                            Ident(
+                                                "b",
+                                            ),
+                                        ),
+                                    ),
+                                ],
+                            ),
                         },
                     ),
                 ],

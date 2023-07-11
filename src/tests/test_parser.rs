@@ -82,6 +82,8 @@ fn test_function_and_call() {
         if (a != 0) {
             let c = a + b;
             return c;
+        } else {
+            return b;
         }
     }
 

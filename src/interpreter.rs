@@ -64,8 +64,20 @@ impl Interpreter {
         Ok(ExprResult::Void)
     }
 
-    fn eval_ident(&self, identifier: Ident) -> Result<ExprResult> {
-        Ok(ExprResult::Void)
+    fn eval_ident(&mut self, identifier: Ident) -> Result<ExprResult> {
+        // TODO: Uff, plz fix diz clone shit.
+        match self.env.get_ref(&identifier.0) {
+            None => {
+                bail!("The identifier {:?} doesn't exists.", &identifier.0);
+            }
+            Some(v) => {
+                if let MemoryObject::ExprResult(res) = v {
+                    Ok(res.clone())
+                } else {
+                    bail!("identifier can't be Function");
+                }
+            }
+        }
     }
 
     fn eval_literal(&self, literal: Literal) -> Result<ExprResult> {
@@ -78,10 +90,113 @@ impl Interpreter {
     fn eval_fn_call(&mut self, fn_call: FunctionCall) -> Result<ExprResult> {
         // make sure the function exists in memory.
         if !self.env.exists(&fn_call.name) {
-            bail!("Function doesn't exists.");
+            bail!("Function {:?} doesn't exists.", fn_call.name);
         }
 
-        todo!();
+        let mut expr_results: Vec<ExprResult> = vec![];
+        for expr in fn_call.parameters {
+            expr_results.push(self.eval_expr(expr)?);
+        }
+
+        let fun = match self.env.get_ref(&fn_call.name) {
+            None => {
+                bail!("Can't get the functon")
+            }
+            Some(v) => match v {
+                MemoryObject::ExprResult(_) => {
+                    bail!("it should be a function");
+                }
+                MemoryObject::Function(fun) => fun,
+            },
+        };
+
+        if !(fun.params.len() == expr_results.len()) {
+            bail!(
+                "expected {:?} parameters but got {:?} instead",
+                fun.params.len(),
+                expr_results.len()
+            );
+        }
+        let fun_params_clone = fun.params.clone();
+        let fun_body = fun.body.clone();
+        let fun_return = fun.return_type.clone();
+
+        let scoped_env = Env::new_with_outer(Box::new(self.env.clone()));
+        self.env = scoped_env;
+
+        let zipped = std::iter::zip(fun_params_clone, expr_results.clone());
+        for val in zipped {
+            // Assert the type of parameter.
+            if !Self::is_type_expr_result_same(Some(val.0 .1.clone()), &val.1) {
+                bail!(
+                    "Expr result {:?}, isn't valid for type {:?}",
+                    &val.1,
+                    &val.0 .1
+                );
+            }
+
+            self.env
+                .insert(val.0 .0 .0, MemoryObject::ExprResult(val.1));
+        }
+
+        let returned_value = self.eval_block_statement(fun_body)?;
+        println!("returned_val: {:?} {:?}", &returned_value, &fun_return);
+
+        if !Self::is_type_expr_result_same(fun_return.clone(), &returned_value) {
+            println!("-----");
+            bail!(
+                "Return value: {:?}, is not of type {:?}",
+                &returned_value,
+                &fun_return
+            );
+        }
+
+        self.env = self.env.cloned_outer();
+
+        Ok(returned_value)
+    }
+
+    fn eval_block_statement(&mut self, statements: BlockStatement) -> Result<ExprResult> {
+        println!("Block: {:?} {}", &statements, statements.len());
+        let mut should_return = false;
+        for s in statements {
+            if let Statement::Return(_) = &s {
+                should_return = true;
+            }
+            let r = self.eval_statement(s)?;
+            if should_return {
+                return Ok(r);
+            }
+        }
+        Ok(ExprResult::Void)
+    }
+
+    pub fn is_type_expr_result_same(type_: Option<Type>, expr_result: &ExprResult) -> bool {
+        match type_ {
+            None => {
+                if let ExprResult::Void = expr_result {
+                    return true;
+                } else {
+                    false
+                }
+            }
+            Some(t) => match t {
+                Type::Bool => {
+                    if let ExprResult::Bool(_) = expr_result {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+                Type::UnsignedInteger => {
+                    if let ExprResult::UnsignedInteger(_) = expr_result {
+                        return true;
+                    } else {
+                        false
+                    }
+                }
+            },
+        }
     }
 
     fn eval_expr(&mut self, expr: Expr) -> Result<ExprResult> {
@@ -97,24 +212,40 @@ impl Interpreter {
         }
     }
 
+    fn eval_statement(&mut self, s: Statement) -> Result<ExprResult> {
+        println!("Current statement: {:?}", &s);
+        match s {
+            Statement::Let(ident, expr) => {
+                let expr_result = self.eval_expr(expr)?;
+                self.env
+                    .insert(ident.0, MemoryObject::ExprResult(expr_result));
+                Ok(ExprResult::Void)
+            }
+            Statement::Function(fun) => {
+                self.env
+                    .insert(fun.name.clone(), MemoryObject::Function(fun));
+                Ok(ExprResult::Void)
+            }
+            Statement::Return(expr) => {
+                let expr_result = self.eval_expr(expr)?;
+                Ok(expr_result)
+            }
+            Statement::Expr(expr) => {
+                let _ = self.eval_expr(expr)?;
+                Ok(ExprResult::Void)
+            }
+            _ => {
+                bail!("Statement {:?}, can't be evaluated.", &s);
+            }
+        }
+    }
+
     /// Evaluate the AST
     pub fn eval(&mut self) -> Result<()> {
         let program: Program = self.parser.parse()?;
 
         for statement in program {
-            match statement {
-                Statement::Let(ident, expr) => {
-                    let expr_result = self.eval_expr(expr)?;
-                    self.env
-                        .insert(ident.0, MemoryObject::ExprResult(expr_result));
-                }
-                Statement::Function(fun) => self
-                    .env
-                    .insert(fun.name.clone(), MemoryObject::Function(fun)),
-                _ => {
-                    todo!()
-                }
-            };
+            let r = self.eval_statement(statement)?;
         }
 
         println!("Env: {:#?}", self.env);
