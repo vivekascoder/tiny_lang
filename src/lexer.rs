@@ -51,6 +51,7 @@ impl Lexer {
             "false" => Some(TokenType::Boolean(false)),
             "bool" => Some(TokenType::KeywordBool),
             "void" => Some(TokenType::KeywordVoid),
+            "char" => Some(TokenType::KeywordChar),
             _ => None,
         }
     }

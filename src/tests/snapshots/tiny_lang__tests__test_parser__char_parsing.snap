@@ -1,0 +1,15 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(\"\", code).parse()"
+---
+Ok(
+    [
+        Expr(
+            Literal(
+                Char(
+                    'a',
+                ),
+            ),
+        ),
+    ],
+)

@@ -167,6 +167,7 @@ pub enum TokenType {
     KeywordIf,
     KeywordElse,
     KeywordVoid,
+    KeywordChar,
 
     // Symbol
     SymbolReturn,

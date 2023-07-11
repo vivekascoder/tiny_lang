@@ -8,6 +8,12 @@ fn test_lexing_let_syntax() {
 }
 
 #[test]
+fn test_lexing_char() {
+    let source = "'a'";
+    insta::assert_debug_snapshot!(Lexer::new("", source).into_iter().collect::<Vec<Token>>());
+}
+
+#[test]
 fn test_function_declaration() {
     let source = r#"
         fun calculate_something(a: usize, b: usize) => bool {

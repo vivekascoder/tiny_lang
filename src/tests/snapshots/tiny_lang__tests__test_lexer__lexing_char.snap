@@ -1,0 +1,29 @@
+---
+source: src/tests/test_lexer.rs
+expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
+---
+[
+    Token {
+        type_: SQuote,
+        pos: (
+            0,
+            1,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "a",
+        ),
+        pos: (
+            1,
+            2,
+        ),
+    },
+    Token {
+        type_: SQuote,
+        pos: (
+            2,
+            3,
+        ),
+    },
+]
