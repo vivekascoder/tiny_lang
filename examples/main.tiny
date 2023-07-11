@@ -1,0 +1,10 @@
+let a = 454 + 3636 * 3; 
+let b = 45 / 3;
+
+fun something(a: usize) => usize {
+    let something = 353;
+    return something;
+}
+
+let re = something(35);
+print(re);
