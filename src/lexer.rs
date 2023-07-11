@@ -181,7 +181,7 @@ impl Lexer {
                         match self.current() {
                             '\n' => {
                                 self.bump();
-                                return self.next();
+                                return Ok(self.next()?);
                             }
                             _ => {
                                 continue;

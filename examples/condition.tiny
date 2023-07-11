@@ -1,5 +1,6 @@
 
 
+// Function to return greatest among three passed numbers.
 fun greatest(a: usize, b: usize, c: usize) => usize {
     if (a > b) {
         if (a > c) {
@@ -16,4 +17,6 @@ fun greatest(a: usize, b: usize, c: usize) => usize {
     }
 }
 
+
+// Call and print the result.
 print(greatest(34, 46, 2));
