@@ -1,0 +1,19 @@
+
+
+fun greatest(a: usize, b: usize, c: usize) => usize {
+    if (a > b) {
+        if (a > c) {
+            return a;
+        } else {
+            return c;
+        }
+    } else {
+        if (b > c) {
+            return b;
+        } else {
+            return c;
+        }
+    }
+}
+
+print(greatest(34, 46, 2));
