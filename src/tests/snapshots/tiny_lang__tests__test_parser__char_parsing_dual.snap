@@ -1,6 +1,5 @@
 ---
 source: src/tests/test_parser.rs
-assertion_line: 29
 expression: "Parser::new(\"\", code).parse()"
 ---
 Ok(

@@ -11,19 +11,17 @@ expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
         ),
     },
     Token {
-        type_: Identifier(
-            "a",
-        ),
+        type_: NewLine,
         pos: (
             1,
-            2,
+            3,
         ),
     },
     Token {
         type_: SQuote,
         pos: (
-            2,
             3,
+            4,
         ),
     },
 ]
