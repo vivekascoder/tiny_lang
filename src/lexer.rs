@@ -128,6 +128,11 @@ impl Lexer {
                 Ok(self.token(TokenType::LParen, (self.cur - 1, self.cur)))
             }
 
+            '\'' => {
+                self.bump();
+                Ok(self.token(TokenType::SQuote, (self.cur - 1, self.cur)))
+            }
+
             ')' => {
                 self.bump();
                 Ok(self.token(TokenType::RParen, (self.cur - 1, self.cur)))

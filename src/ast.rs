@@ -45,6 +45,7 @@ pub enum ExprResult {
     UnsignedInteger(usize),
     Void,
     Return(Box<ExprResult>),
+    Char(char),
 }
 
 impl Display for ExprResult {
@@ -54,6 +55,7 @@ impl Display for ExprResult {
             Self::UnsignedInteger(i) => write!(f, "{}", i),
             Self::Void => write!(f, ""),
             Self::Return(v) => write!(f, "{}", *v),
+            Self::Char(c) => write!(f, "{}", c),
         }
     }
 }
@@ -89,6 +91,7 @@ pub enum Prefix {
 pub enum Literal {
     UnsignedInteger(usize),
     Bool(bool),
+    Char(char),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -152,6 +155,8 @@ pub enum TokenType {
     LBrace, // {
     RBrace, // }
     Comma,
+    SQuote, // '
+    DQuote, // "
 
     // Keywords
     KeywordLet,

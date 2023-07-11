@@ -321,6 +321,28 @@ impl Parser {
             TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(val)),
             TokenType::Boolean(val) => Expr::Literal(Literal::Bool(val)),
             TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
+            TokenType::SQuote => {
+                // Parse character.
+                let char_val = match self.next_token {
+                    TokenType::Identifier(ref i) => {
+                        if i.len() != 1 {
+                            bail!("Character should be of length 1");
+                        }
+                        i.clone()
+                    }
+                    _ => {
+                        bail!("char not found after `'` instead got {:?}", self.next_token);
+                    }
+                };
+                self.bump()?;
+                if !self.expect_next_token(&TokenType::SQuote)? {
+                    bail!(
+                        "character not ended with `'` found {:?} instead.",
+                        self.next_token
+                    );
+                }
+                Expr::Literal(Literal::Char(char_val.chars().nth(0).unwrap()))
+            }
             TokenType::Minus | TokenType::Bang | TokenType::Plus => {
                 // Parse prefix expression.
 

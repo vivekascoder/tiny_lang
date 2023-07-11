@@ -77,6 +77,23 @@ impl Interpreter {
                     bail!("Types don't match.")
                 }
             }
+            ExprResult::Char(l) => {
+                if let ExprResult::Char(r) = right_result {
+                    return match infix {
+                        Infix::GreaterThan => Ok(ExprResult::Bool(l > r)),
+                        Infix::GreaterThanEqual => Ok(ExprResult::Bool(l >= r)),
+                        Infix::LessThan => Ok(ExprResult::Bool(l < r)),
+                        Infix::LessThanEqual => Ok(ExprResult::Bool(l <= r)),
+                        Infix::DoubleEqual => Ok(ExprResult::Bool(l == r)),
+                        Infix::NotEqual => Ok(ExprResult::Bool(l != r)),
+                        _ => {
+                            bail!("The infix operator: {:?} doesn't apply to char.", infix);
+                        }
+                    };
+                } else {
+                    bail!("Types don't match.")
+                }
+            }
             ExprResult::Return(_) => {
                 bail!("Infix expressions can not have return.");
             }
@@ -107,6 +124,7 @@ impl Interpreter {
         match literal {
             Literal::Bool(b) => Ok(ExprResult::Bool(b)),
             Literal::UnsignedInteger(i) => Ok(ExprResult::UnsignedInteger(i)),
+            Literal::Char(c) => Ok(ExprResult::Char(c)),
         }
     }
 
