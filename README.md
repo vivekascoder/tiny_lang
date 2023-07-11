@@ -1,6 +1,6 @@
 # Tiny Lang
 
-Tiny Lang is a type safe general purpose programming language
+Tiny Lang is a toy programming language. It'll soon support compiling to WASM.
 
 ## Install
 
