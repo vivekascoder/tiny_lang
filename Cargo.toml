@@ -2,6 +2,8 @@
 name = "tiny_lang"
 version = "0.1.0"
 edition = "2021"
+about="Tiny Lang is a type safe general purpose programming language"
+authors = ["Vivek K. [vivekascoder@gmail.com]"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

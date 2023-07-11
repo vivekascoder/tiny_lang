@@ -42,9 +42,6 @@ impl Interpreter {
                         Infix::LessThanEqual => Ok(ExprResult::Bool(l <= r)),
                         Infix::DoubleEqual => Ok(ExprResult::Bool(l == r)),
                         Infix::NotEqual => Ok(ExprResult::Bool(l != r)),
-                        _ => {
-                            bail!("sf");
-                        }
                     };
                 } else {
                     bail!("Types don't match");
