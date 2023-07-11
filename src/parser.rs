@@ -332,6 +332,7 @@ impl Parser {
                         i.clone()
                     }
 
+                    // TODO: could use display here.
                     NewLine => '\n'.to_string(),
                     Tab => '\t'.to_string(),
                     Space => ' '.to_string(),
