@@ -296,7 +296,7 @@ impl Parser {
 
     fn token_to_precedence(tok: &TokenType) -> Precedence {
         match tok {
-            TokenType::Equal | TokenType::NotEqual => Precedence::Equals,
+            TokenType::Equal | TokenType::NotEqual | TokenType::DoubleEqual => Precedence::Equals,
             TokenType::LessThan | TokenType::LessThanEqual => Precedence::LessGreater,
             TokenType::GreaterThan | TokenType::GreaterThanEqual => Precedence::LessGreater,
             TokenType::Plus | TokenType::Minus => Precedence::Sum,
@@ -337,6 +337,7 @@ impl Parser {
                     Tab => '\t'.to_string(),
                     Space => ' '.to_string(),
                     BSlash => '\\'.to_string(),
+                    Minus => '-'.to_string(),
 
                     _ => {
                         bail!("char not found after `'` instead got {:?}", self.next_token);
@@ -395,6 +396,7 @@ impl Parser {
                 | TokenType::Divide
                 | TokenType::Multiply
                 | TokenType::Equal
+                | TokenType::DoubleEqual
                 | TokenType::NotEqual
                 | TokenType::LessThan
                 | TokenType::LessThanEqual

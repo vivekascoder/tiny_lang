@@ -141,8 +141,8 @@ impl Lexer {
                         return Ok(self.token(TokenType::NewLine, (self.cur - 2, self.cur)));
                     }
                     't' => {
-                        info!("encounterd n");
-                        Ok(self.token(TokenType::Tab, (self.cur - 2, self.cur)))
+                        self.bump();
+                        return Ok(self.token(TokenType::Tab, (self.cur - 2, self.cur)));
                     }
                     // Rust doesn't have `\v` ?
                     // 'v' => Ok(self.token(TokenType::VTab, (self.cur - 2, self.cur))),
@@ -229,7 +229,7 @@ impl Lexer {
 
                     // multi line comment
                     '*' => loop {
-                        self.bump();
+                        info!("*, self.current(): {:?}", self.current());
                         match self.current() {
                             '*' => {
                                 self.bump();
@@ -237,10 +237,12 @@ impl Lexer {
                                     self.bump();
                                     return Ok(self.next()?);
                                 } else {
+                                    // self.bump();
                                     continue;
                                 }
                             }
                             _ => {
+                                self.bump();
                                 continue;
                             }
                         };

@@ -1,8 +1,7 @@
 use crate::{ast::*, native::Native};
+use crate::{env::Env, parser::Parser};
 use anyhow::{bail, Result};
 use log::info;
-
-use crate::{env::Env, parser::Parser};
 
 pub struct Interpreter {
     parser: Parser,
@@ -94,8 +93,24 @@ impl Interpreter {
                     bail!("Types don't match.")
                 }
             }
-            ExprResult::Return(_) => {
-                bail!("Infix expressions can not have return.");
+            ExprResult::Return(v) => {
+                return Ok(self.eval_infix_expr(
+                    infix,
+                    self.expr_result_to_expr(*v)?,
+                    self.expr_result_to_expr(right_result)?,
+                )?);
+            }
+        }
+    }
+
+    fn expr_result_to_expr(&self, expr_result: ExprResult) -> Result<Expr> {
+        match expr_result {
+            ExprResult::Bool(b) => Ok(Expr::Literal(Literal::Bool(b))),
+            ExprResult::UnsignedInteger(i) => Ok(Expr::Literal(Literal::UnsignedInteger(i))),
+            ExprResult::Char(c) => Ok(Expr::Literal(Literal::Char(c))),
+            ExprResult::Return(v) => Ok(self.expr_result_to_expr(*v)?),
+            _ => {
+                bail!("Can't convert {:?} to Expr", &expr_result);
             }
         }
     }
