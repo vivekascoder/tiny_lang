@@ -237,7 +237,6 @@ impl Lexer {
                                     self.bump();
                                     return Ok(self.next()?);
                                 } else {
-                                    // self.bump();
                                     continue;
                                 }
                             }

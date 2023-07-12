@@ -71,6 +71,8 @@ fn main() -> Result<()> {
             }
 
             let program = fs::read_to_string(&file_name)?;
+
+            // TODO: Also return json? but should we as it's another dependency?
             println!("{:#?}", AST::new(&file_name, &program).parse()?);
         }
     }

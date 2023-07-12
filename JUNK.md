@@ -81,6 +81,8 @@ How to store functions?
   - false
 - What type is getting stored in the memory?
 
+How tihe recursive `ExprResult::Return<Box<ExprResult>>` should be handled?
+
 ```
 printf("Hello World");
 ```
