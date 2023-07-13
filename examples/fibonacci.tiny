@@ -14,4 +14,4 @@ fun fibo(num: usize) => usize {
     }
 }
 
-print(fibo(5));
+print(fibo(15));

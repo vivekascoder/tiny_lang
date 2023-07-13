@@ -83,6 +83,9 @@ How to store functions?
 
 How tihe recursive `ExprResult::Return<Box<ExprResult>>` should be handled?
 
+For syntax highlighting
+https://github.com/damirka/move-syntax/blob/main/syntaxes/move.tmLanguage.json
+
 ```
 printf("Hello World");
 ```

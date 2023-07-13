@@ -141,6 +141,7 @@ pub enum TokenType {
     Identifier(String),
     Usize(usize),
     Boolean(bool),
+    String(String),
     Colon,
     SemiColon,
 
@@ -231,6 +232,7 @@ impl Display for TokenType {
             TokenType::KeywordChar => write!(f, "chat"),
             TokenType::KeywordWhile => write!(f, "while"),
             TokenType::SymbolReturn => write!(f, "=>"),
+            TokenType::String(s) => write!(f, "\"{}\"", s),
         }
     }
 }
