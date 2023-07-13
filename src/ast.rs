@@ -1,6 +1,6 @@
 // Types for our language.
 
-use std::fmt::Display;
+use std::{fmt::Display, rc::Rc};
 
 pub type Program = Vec<Statement>;
 pub type BlockStatement = Vec<Statement>;
@@ -30,7 +30,7 @@ pub enum Expr {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCall {
     pub parameters: Vec<Expr>,
-    pub name: String,
+    pub name: Rc<str>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -95,7 +95,7 @@ pub enum Literal {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Ident(pub String);
+pub struct Ident(pub Rc<str>);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
@@ -129,7 +129,7 @@ pub enum Type {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Function {
-    pub name: String,
+    pub name: Rc<str>,
     pub params: Vec<(Ident, Type)>,
     pub return_type: Option<Type>,
     pub body: Vec<Statement>,
@@ -138,10 +138,10 @@ pub struct Function {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     EOF,
-    Identifier(String),
+    Identifier(Rc<str>),
     Usize(usize),
     Boolean(bool),
-    String(String),
+    String(Rc<str>),
     Colon,
     SemiColon,
 

@@ -329,12 +329,9 @@ impl Interpreter {
             }
             Statement::Assignment(ident, expr) => {
                 let expr_result = self.eval_expr(expr)?;
-                let env_var = self.env.get_ref_mut(ident.0.as_str());
+                let env_var = self.env.get_ref_mut(&ident.0);
                 if let None = env_var {
-                    bail!(
-                        "identifier {:?} isn't in the environment.",
-                        ident.0.as_str()
-                    );
+                    bail!("identifier {:?} isn't in the environment.", &ident.0);
                 }
                 *env_var.unwrap() = MemoryObject::ExprResult(expr_result);
                 Ok(ExprResult::Void)

@@ -1,9 +1,9 @@
 use crate::ast::MemoryObject;
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Env {
-    store: HashMap<String, MemoryObject>,
+    store: HashMap<Rc<str>, MemoryObject>,
     outer: Option<Box<Env>>,
 }
 
@@ -23,7 +23,7 @@ impl Env {
         }
     }
 
-    pub fn insert(&mut self, key: String, val: MemoryObject) {
+    pub fn insert(&mut self, key: Rc<str>, val: MemoryObject) {
         self.store.insert(key, val);
     }
 
