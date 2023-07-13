@@ -34,9 +34,9 @@ fun fibo(num: usize) => usize {
         }
     }
 }
-```
 
 print(fibo(15));
+```
 
 ### For more exmaples.
 
