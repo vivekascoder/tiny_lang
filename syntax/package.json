@@ -1,0 +1,25 @@
+{
+  "name": "tiny-lang",
+  "displayName": "Tiny Lang",
+  "description": "Syntax highlighting for tiny lang programs",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "TinyLang",
+      "aliases": ["Tiny Lang", "TinyLang"],
+      "extensions": ["Tiny Lang is a type safe general purpose programming language"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "TinyLang",
+      "scopeName": "source.tiny_lang",
+      "path": "./syntaxes/TinyLang.tmLanguage.json"
+    }]
+  }
+}

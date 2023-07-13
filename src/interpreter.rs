@@ -2,6 +2,7 @@ use crate::{ast::*, native::Native};
 use crate::{env::Env, parser::Parser};
 use anyhow::{bail, Result};
 use log::info;
+// const a: bool = true;
 
 pub struct Interpreter {
     parser: Parser,

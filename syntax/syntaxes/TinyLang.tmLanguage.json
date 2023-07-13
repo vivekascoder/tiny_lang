@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Tiny Lang",
+  "fileTypes": [".tiny"],
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.TinyLang",
+          "match": "\\b(if|while|for|return|let|fun|import)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.TinyLang",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.TinyLang",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "function": {}
+  },
+  "scopeName": "source.tiny_lang"
+}
