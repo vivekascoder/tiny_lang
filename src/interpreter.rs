@@ -326,6 +326,38 @@ impl Interpreter {
                 let _ = self.eval_expr(expr)?;
                 Ok(ExprResult::Void)
             }
+            Statement::Assignment(ident, expr) => {
+                let expr_result = self.eval_expr(expr)?;
+                let env_var = self.env.get_ref_mut(ident.0.as_str());
+                if let None = env_var {
+                    bail!(
+                        "identifier {:?} isn't in the environment.",
+                        ident.0.as_str()
+                    );
+                }
+                *env_var.unwrap() = MemoryObject::ExprResult(expr_result);
+                Ok(ExprResult::Void)
+            }
+            Statement::While(while_) => loop {
+                if let ExprResult::Bool(is_true) = self.eval_expr(while_.condition.clone())? {
+                    if !is_true {
+                        return Ok(ExprResult::Void);
+                    }
+
+                    let scoped_env = Env::new_with_outer(Box::new(self.env.clone()));
+                    self.env = scoped_env;
+                    let v = self.eval_block_statement(while_.body.clone())?;
+                    if let ExprResult::Return(boxed) = v {
+                        return Ok(ExprResult::Return(boxed));
+                    }
+                    self.env = self.env.cloned_outer();
+                } else {
+                    bail!(
+                        "while condition must be bool but it's {:?}.",
+                        &while_.condition
+                    );
+                }
+            },
             _ => {
                 bail!("Statement {:?}, can't be evaluated.", &s);
             }

@@ -53,6 +53,7 @@ impl Lexer {
             "bool" => Some(TokenType::KeywordBool),
             "void" => Some(TokenType::KeywordVoid),
             "char" => Some(TokenType::KeywordChar),
+            "while" => Some(TokenType::KeywordWhile),
             _ => None,
         }
     }
@@ -100,7 +101,7 @@ impl Lexer {
             return Ok(self.token(TokenType::EOF, (self.cur, self.cur)));
             // bail!("EOF reached");
         }
-        info!("current token: {:?}", self.current());
+        // info!("current token: {:?}", self.current());
         match self.current() {
             ';' => {
                 self.bump();
@@ -229,7 +230,6 @@ impl Lexer {
 
                     // multi line comment
                     '*' => loop {
-                        info!("*, self.current(): {:?}", self.current());
                         match self.current() {
                             '*' => {
                                 self.bump();

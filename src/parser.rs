@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ast::*;
 use crate::lexer::Lexer;
 use anyhow::{anyhow, bail, Result};
@@ -283,13 +285,75 @@ impl Parser {
         }))
     }
 
+    fn parse_while_statement(&mut self) -> Result<Statement> {
+        if !self.expect_next_token(&TokenType::LParen)? {
+            bail!("expected `(` but got {:>} instead", self.next_token);
+        }
+        self.bump()?;
+
+        let expr = self.parse_expression(Precedence::Lowest)?;
+        info!("Expression: {:?}", expr);
+
+        if !self.expect_next_token(&TokenType::RParen)? {
+            bail!(
+                "parsing if: expected `)` but found {:?}, instead",
+                self.current_token
+            );
+        }
+
+        if !self.expect_next_token(&TokenType::LBrace)? {
+            bail!(
+                "parsing if: expected `{{` but found {:?}, instead",
+                self.current_token
+            );
+        }
+        self.bump()?;
+
+        let block = self.parse_block_statement()?;
+
+        info!("while statment parsed: {:?}, {:?}", &expr, &block);
+
+        Ok(Statement::While(While {
+            condition: expr,
+            body: block,
+        }))
+    }
+
+    fn parse_assign_or_expr(&mut self) -> Result<Statement> {
+        let var = match self.current_token {
+            TokenType::Identifier(ref i) => i.clone(),
+            _ => {
+                bail!("{:?} is not identifier", self.current_token);
+            }
+        };
+
+        if self.next_token_is(&TokenType::Equal) {
+            // parse assignment.
+            self.bump()?;
+            self.bump()?;
+            let expr = self.parse_expression(Precedence::Lowest)?;
+
+            info!("=/i {:?}, {:?}", self.current_token, self.next_token);
+
+            if !self.expect_next_token(&TokenType::SemiColon)? {
+                bail!("end plx");
+            }
+            self.bump()?;
+            Ok(Statement::Assignment(Ident(var), expr))
+        } else {
+            Ok(Statement::Expr(self.parse_expression(Precedence::Lowest)?))
+        }
+    }
+
     fn parse_statement(&mut self) -> Result<Statement> {
         info!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token {
             TokenType::KeywordLet => self.parse_let_statement()?,
             TokenType::KeywordIf => self.parse_if_statement()?,
             TokenType::KeywordFun => self.parse_function_statement()?,
+            TokenType::KeywordWhile => self.parse_while_statement()?,
             TokenType::KeywordReturn => self.parse_return_statement()?,
+            TokenType::Identifier(_) => self.parse_assign_or_expr()?,
             _ => self.parse_expression_statement()?,
         })
     }
@@ -360,7 +424,7 @@ impl Parser {
                     TokenType::Bang => Prefix::Not,
                     TokenType::Plus => Prefix::Plus,
                     TokenType::Minus => Prefix::Minus,
-                    _ => panic!("not a valid infix operator."),
+                    _ => bail!("not a valid infix operator."),
                 };
                 self.bump()?;
 
@@ -416,7 +480,7 @@ impl Parser {
                         TokenType::GreaterThan => Infix::GreaterThan,
                         TokenType::GreaterThanEqual => Infix::GreaterThanEqual,
                         _ => {
-                            bail!("not a valid infix operator.");
+                            bail!("{:?} is not a valid infix operator.", &self.next_token);
                         }
                     };
                     info!("Infix: {:?}", infix);

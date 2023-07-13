@@ -100,10 +100,18 @@ pub struct Ident(pub String);
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(Ident, Expr),
+    Assignment(Ident, Expr),
     Function(Function),
     Return(Expr),
     If(Condition),
     Expr(Expr),
+    While(While),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct While {
+    pub condition: Expr,
+    pub body: BlockStatement,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -172,6 +180,7 @@ pub enum TokenType {
     KeywordElse,
     KeywordVoid,
     KeywordChar,
+    KeywordWhile,
 
     // Symbol
     SymbolReturn,
@@ -220,6 +229,7 @@ impl Display for TokenType {
             TokenType::KeywordElse => write!(f, "else"),
             TokenType::KeywordVoid => write!(f, "void"),
             TokenType::KeywordChar => write!(f, "chat"),
+            TokenType::KeywordWhile => write!(f, "while"),
             TokenType::SymbolReturn => write!(f, "=>"),
         }
     }
