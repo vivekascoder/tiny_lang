@@ -87,3 +87,15 @@ fn does_if_eval_works() {
     let mut i = Interpreter::new("", code);
     i.eval().unwrap();
 }
+
+#[test]
+fn does_assignment_works() {
+    setup();
+    let code = r#"
+    let a = 454;
+    a = 0;
+    print(a);
+    "#;
+    let mut i = Interpreter::new("", code);
+    insta::assert_debug_snapshot!(i.eval().unwrap());
+}

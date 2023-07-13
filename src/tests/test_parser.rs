@@ -107,3 +107,36 @@ fn test_function_and_call() {
     info!("AST generated for the program: {:#?}", &ast);
     insta::assert_debug_snapshot!(&ast);
 }
+
+#[test]
+fn test_while_and_assignement() {
+    setup();
+    let code = r#"
+    /**
+    * Demostration of while loop in tiny lang.
+    **/
+
+    let i = 0;
+    while (i < 5) {
+        print(i);
+        print('\n');
+        i = i + 1;
+    }
+    "#;
+    let ast = Parser::new("", code).parse();
+    info!("AST generated for the program: {:#?}", &ast);
+    insta::assert_debug_snapshot!(&ast);
+}
+
+#[test]
+fn test_assignement_parsing() {
+    setup();
+    let code = r#"
+    let a = 454;
+    a = 0;
+    print(a);
+    "#;
+    let ast = Parser::new("", code).parse();
+    info!("AST generated for the program: {:#?}", &ast);
+    insta::assert_debug_snapshot!(&ast);
+}

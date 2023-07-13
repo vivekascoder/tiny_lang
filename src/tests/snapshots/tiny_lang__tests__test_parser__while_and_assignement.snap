@@ -1,0 +1,83 @@
+---
+source: src/tests/test_parser.rs
+expression: "&ast"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "i",
+            ),
+            Literal(
+                UnsignedInteger(
+                    0,
+                ),
+            ),
+        ),
+        While(
+            While {
+                condition: Infix(
+                    LessThan,
+                    Ident(
+                        Ident(
+                            "i",
+                        ),
+                    ),
+                    Literal(
+                        UnsignedInteger(
+                            5,
+                        ),
+                    ),
+                ),
+                body: [
+                    Expr(
+                        Call(
+                            FunctionCall {
+                                parameters: [
+                                    Ident(
+                                        Ident(
+                                            "i",
+                                        ),
+                                    ),
+                                ],
+                                name: "print",
+                            },
+                        ),
+                    ),
+                    Expr(
+                        Call(
+                            FunctionCall {
+                                parameters: [
+                                    Literal(
+                                        Char(
+                                            '\n',
+                                        ),
+                                    ),
+                                ],
+                                name: "print",
+                            },
+                        ),
+                    ),
+                    Assignment(
+                        Ident(
+                            "i",
+                        ),
+                        Infix(
+                            Plus,
+                            Ident(
+                                Ident(
+                                    "i",
+                                ),
+                            ),
+                            Literal(
+                                UnsignedInteger(
+                                    1,
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+            },
+        ),
+    ],
+)

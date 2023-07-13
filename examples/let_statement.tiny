@@ -5,3 +5,8 @@ print(var1);
 print('\n');
 print(var2);
 print('\n');
+
+let a = 4546;
+a = 69;
+print(a);
+print('\n');

@@ -1,0 +1,5 @@
+---
+source: src/tests/test_interpreter.rs
+expression: i.eval().unwrap()
+---
+()

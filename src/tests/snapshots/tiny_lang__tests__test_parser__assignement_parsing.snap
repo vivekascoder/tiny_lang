@@ -1,0 +1,42 @@
+---
+source: src/tests/test_parser.rs
+expression: "&ast"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "a",
+            ),
+            Literal(
+                UnsignedInteger(
+                    454,
+                ),
+            ),
+        ),
+        Assignment(
+            Ident(
+                "a",
+            ),
+            Literal(
+                UnsignedInteger(
+                    0,
+                ),
+            ),
+        ),
+        Expr(
+            Call(
+                FunctionCall {
+                    parameters: [
+                        Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                    ],
+                    name: "print",
+                },
+            ),
+        ),
+    ],
+)
