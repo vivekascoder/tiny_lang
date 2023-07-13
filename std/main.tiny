@@ -1,0 +1,8 @@
+/**
+* Tiny Lang's standard library.
+* Author: Vivek (vivekascoder@gmail.com)
+**/
+
+fun to_char(c: usize) => char {
+    
+}

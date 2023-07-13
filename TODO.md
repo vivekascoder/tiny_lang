@@ -15,7 +15,7 @@
 ### To achieve: Modules / Multiple file / project structure
 
 - [ ] Have some info on the module tied along with the Lexer -> Parser -> Enviromment
-- [ ] Write a CLI to manage the whole interpreter.
+- [x] Write a CLI to manage the whole interpreter.
 - [ ] Some way to parse imports inside a folder and interpret them.
 
 ### To achieve: Compiling to WASM.
