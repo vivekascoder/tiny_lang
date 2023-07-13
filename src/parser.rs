@@ -69,7 +69,7 @@ impl Parser {
 
     fn parse_let_statement(&mut self) -> Result<Statement> {
         // the current token is `let`
-        let name = match *self.next_token {
+        let name = match self.next_token.as_ref() {
             TokenType::Identifier(name) => name.clone(),
             _ => panic!("identifier isn't here."),
         };
@@ -95,7 +95,7 @@ impl Parser {
         }
         self.bump()?;
 
-        Ok(Statement::Let(Ident(Rc::from(name)), expr))
+        Ok(Statement::Let(Ident(Rc::clone(&name)), expr))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement> {
@@ -126,7 +126,7 @@ impl Parser {
     fn parse_function_statement(&mut self) -> Result<Statement> {
         // current token is `fun`.
 
-        let fn_name = match *self.next_token {
+        let fn_name = match self.next_token.as_ref() {
             TokenType::Identifier(n) => Rc::clone(&n),
             _ => {
                 bail!(
@@ -151,7 +151,7 @@ impl Parser {
         // Start parsing parameters
         while !self.current_token_is(&Rc::new(TokenType::RParen)) {
             // parse ident-> : ->type
-            let param_name = match *self.next_token {
+            let param_name = match self.next_token.as_ref() {
                 TokenType::Identifier(ref n) => Rc::clone(n),
                 _ => {
                     bail!("next token to parse function parameters should be an Identifier, got {:?} instead", &self.next_token);
@@ -321,7 +321,7 @@ impl Parser {
     }
 
     fn parse_assign_or_expr(&mut self) -> Result<Statement> {
-        let var = match *self.current_token {
+        let var = match self.current_token.as_ref() {
             TokenType::Identifier(ref i) => i.clone(),
             _ => {
                 bail!("{:?} is not identifier", self.current_token);
@@ -348,7 +348,7 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Statement> {
         info!("Current Token: {:?}", self.current_token);
-        Ok(match *self.current_token {
+        Ok(match self.current_token.as_ref() {
             TokenType::KeywordLet => self.parse_let_statement()?,
             TokenType::KeywordIf => self.parse_if_statement()?,
             TokenType::KeywordFun => self.parse_function_statement()?,
@@ -382,14 +382,14 @@ impl Parser {
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
         // Parse the left
-        let mut left = match *self.current_token {
-            TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(val)),
-            TokenType::Boolean(val) => Expr::Literal(Literal::Bool(val)),
+        let mut left = match self.current_token.as_ref() {
+            TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(*val)),
+            TokenType::Boolean(val) => Expr::Literal(Literal::Bool(*val)),
             TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
             TokenType::SQuote => {
                 use TokenType::*;
                 // Parse character.
-                let char_val = match *self.next_token {
+                let char_val = match self.next_token.as_ref() {
                     Identifier(ref i) => {
                         if i.len() != 1 {
                             bail!("Character should be of length 1");
@@ -421,7 +421,7 @@ impl Parser {
                 // Parse prefix expression.
 
                 // Operator
-                let prefix = match *self.current_token {
+                let prefix = match self.current_token.as_ref() {
                     TokenType::Bang => Prefix::Not,
                     TokenType::Plus => Prefix::Plus,
                     TokenType::Minus => Prefix::Minus,
@@ -455,7 +455,7 @@ impl Parser {
                 "next token while parsing expression right -> {:?}",
                 self.next_token
             );
-            match *self.next_token {
+            match self.next_token.as_ref() {
                 TokenType::Plus
                 | TokenType::Minus
                 | TokenType::Divide
@@ -469,7 +469,7 @@ impl Parser {
                 | TokenType::GreaterThanEqual => {
                     self.bump()?;
 
-                    let infix = match *self.current_token {
+                    let infix = match self.current_token.as_ref() {
                         TokenType::Plus => Infix::Plus,
                         TokenType::Minus => Infix::Minus,
                         TokenType::Divide => Infix::Divide,
