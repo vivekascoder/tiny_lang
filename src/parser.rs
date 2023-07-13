@@ -341,7 +341,7 @@ impl Parser {
             self.bump()?;
             Ok(Statement::Assignment(Ident(var), expr))
         } else {
-            Ok(Statement::Expr(self.parse_expression(Precedence::Lowest)?))
+            Ok(self.parse_expression_statement()?)
         }
     }
 
