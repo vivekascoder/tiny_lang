@@ -1,11 +1,9 @@
-use std::cell::{Ref, RefCell};
-use std::rc::Rc;
-
 use crate::parser::Parser;
 use crate::scope::ScopeStack;
 use crate::{ast::*, native::Native};
 use anyhow::{bail, Result};
 use log::info;
+use std::rc::Rc;
 // const a: bool = true;
 
 pub struct Interpreter {
@@ -380,9 +378,6 @@ impl Interpreter {
                     );
                 }
             },
-            _ => {
-                bail!("Statement {:?}, can't be evaluated.", &s);
-            }
         }
     }
 
