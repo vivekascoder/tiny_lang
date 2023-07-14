@@ -1,6 +1,7 @@
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
+use crate::scope::ScopeStack;
 use crate::{ast::*, native::Native};
 use crate::{env::Env, parser::Parser};
 use anyhow::{bail, Result};
@@ -9,15 +10,18 @@ use log::info;
 
 pub struct Interpreter {
     parser: Parser,
-    env: Rc<RefCell<Env>>,
+    env: ScopeStack,
     native: Native,
 }
 
 impl Interpreter {
     pub fn new(module: &str, source: &str) -> Self {
+        let mut scope_stack = ScopeStack::new();
+        scope_stack.push_scope();
+
         Self {
             parser: Parser::new(module, source),
-            env: Rc::new(RefCell::new(Env::new())),
+            env: scope_stack,
             native: Native::new(),
         }
     }
@@ -131,13 +135,13 @@ impl Interpreter {
 
     fn eval_ident(&mut self, identifier: Ident) -> Result<ExprResult> {
         // TODO: Uff, plz fix diz clone shit.
-        match self.env.borrow().get_ref(&identifier.0) {
+        match self.env.get_ref(&identifier.0) {
             None => {
                 bail!("The identifier {:?} doesn't exists.", &identifier.0);
             }
             Some(v) => {
                 if let MemoryObject::ExprResult(res) = v {
-                    Ok(res)
+                    Ok(res.clone())
                 } else {
                     bail!("identifier can't be Function");
                 }
@@ -155,7 +159,7 @@ impl Interpreter {
 
     fn eval_fn_call(&mut self, fn_call: FunctionCall) -> Result<ExprResult> {
         // make sure the function exists in memory.
-        if !(self.env.borrow().exists(&fn_call.name) || self.native.is_native(&fn_call.name)) {
+        if !(self.env.exists(&fn_call.name) || self.native.is_native(&fn_call.name)) {
             bail!("Function {:?} doesn't exists.", fn_call.name);
         }
 
@@ -169,11 +173,11 @@ impl Interpreter {
             return Ok(self.native.execute(&fn_call.name, expr_results)?);
         }
 
-        let current_env = Rc::clone(&self.env);
-        let scoped_env = Env::new_with_outer(Rc::clone(&current_env));
+        // let current_env = Rc::clone(&self.env);
+        // let scoped_env = Env::new_with_outer(Rc::clone(&current_env));
 
-        let store = current_env.borrow();
-        let fun = match store.get_ref(&fn_call.name) {
+        // let store = current_env.borrow();
+        let fun = match self.env.get_ref(&fn_call.name) {
             None => {
                 bail!("Can't get the functon")
             }
@@ -181,7 +185,7 @@ impl Interpreter {
                 MemoryObject::ExprResult(_) => {
                     bail!("it should be a function");
                 }
-                MemoryObject::Function(fun) => fun,
+                MemoryObject::Function(fun) => fun.clone(),
             },
         };
 
@@ -193,9 +197,11 @@ impl Interpreter {
             );
         }
 
-        self.env = Rc::new(RefCell::new(scoped_env));
+        // self.env = Rc::new(RefCell::new(scoped_env));
+        self.env.push_scope();
 
         let zipped = std::iter::zip(&fun.params, expr_results);
+        let block_scope = self.env.get_mut_scope();
         for val in zipped {
             // Assert the type of parameter.
             if !Self::is_type_expr_result_same(Some(&val.0 .1), &val.1) {
@@ -206,12 +212,16 @@ impl Interpreter {
                 );
             }
 
-            self.env
-                .borrow_mut()
-                .insert(Rc::clone(&val.0 .0 .0), MemoryObject::ExprResult(val.1));
+            // self.env
+            //     .borrow_mut()
+            block_scope.insert(Rc::clone(&val.0 .0 .0), MemoryObject::ExprResult(val.1));
         }
 
         let returned_value = self.eval_block_statement((&fun.body).clone())?;
+
+        let popped_scope = self.env.pop_scope();
+        info!("Popped scope: {:?}", popped_scope);
+
         info!("returned_val: {:?} {:?}", &returned_value, &fun.return_type);
 
         let r = match &fun.return_type {
@@ -227,8 +237,6 @@ impl Interpreter {
                 &fun.return_type
             );
         }
-
-        self.env = Rc::clone(&current_env);
 
         Ok(returned_value)
     }
@@ -298,12 +306,10 @@ impl Interpreter {
         }
 
         let else_body = if_.else_body.unwrap();
-        let current_env = Rc::clone(&self.env);
-        let scoped_env = Env::new_with_outer(Rc::clone(&current_env));
-        self.env = Rc::new(RefCell::new(scoped_env));
 
+        self.env.push_scope();
         let v = self.eval_block_statement(else_body)?;
-        self.env = current_env;
+        self.env.pop_scope();
 
         info!("else body resulted in {:?}", &v);
         return Ok(v);
@@ -327,16 +333,16 @@ impl Interpreter {
         match s {
             Statement::Let(ident, expr) => {
                 let expr_result = self.eval_expr(expr)?;
-                self.env
-                    .borrow_mut()
-                    .insert(ident.0, MemoryObject::ExprResult(expr_result));
+
+                let scope = self.env.get_mut_scope();
+                scope.insert(ident.0, MemoryObject::ExprResult(expr_result));
+
                 Ok(ExprResult::Void)
             }
             Statement::If(if_) => Ok(self.eval_if_statement(if_)?),
             Statement::Function(fun) => {
-                self.env
-                    .borrow_mut()
-                    .insert(Rc::clone(&fun.name), MemoryObject::Function(fun));
+                let scope = self.env.get_mut_scope();
+                scope.insert(Rc::clone(&fun.name), MemoryObject::Function(fun));
                 Ok(ExprResult::Void)
             }
             Statement::Return(expr) => {
@@ -350,12 +356,12 @@ impl Interpreter {
             Statement::Assignment(ident, expr) => {
                 let expr_result = self.eval_expr(expr)?;
 
-                let mut store = self.env.borrow_mut();
-                let env_var = store.exists(&ident.0);
-                if !env_var {
+                let val = self.env.get_mut_ref(&ident.0);
+                if let None = val {
                     bail!("identifier {:?} isn't in the environment.", &ident.0);
                 }
-                store.set(&ident.0, MemoryObject::ExprResult(expr_result));
+
+                *val.unwrap() = MemoryObject::ExprResult(expr_result);
                 Ok(ExprResult::Void)
             }
             Statement::While(while_) => loop {
@@ -364,16 +370,15 @@ impl Interpreter {
                         return Ok(ExprResult::Void);
                     }
 
-                    let current_env = Rc::clone(&self.env);
-                    let scoped_env = Env::new_with_outer(Rc::clone(&current_env));
-                    self.env = Rc::new(RefCell::new(scoped_env));
+                    self.env.push_scope();
 
                     let v = self.eval_block_statement(while_.body.clone())?;
                     if let ExprResult::Return(boxed) = v {
                         return Ok(ExprResult::Return(boxed));
                     }
 
-                    self.env = current_env;
+                    let popped_scope = self.env.pop_scope();
+                    info!("Popped scope: {:?}", popped_scope);
                 } else {
                     bail!(
                         "while condition must be bool but it's {:?}.",
