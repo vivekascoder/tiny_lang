@@ -1,0 +1,204 @@
+[
+    Function(
+        Function {
+            name: "main",
+            params: [],
+            return_type: None,
+            body: [
+                Let(
+                    Ident(
+                        "state",
+                    ),
+                    Infix(
+                        LeftShift,
+                        Literal(
+                            UnsignedInteger(
+                                1,
+                            ),
+                        ),
+                        Literal(
+                            UnsignedInteger(
+                                31,
+                            ),
+                        ),
+                    ),
+                ),
+                Let(
+                    Ident(
+                        "i",
+                    ),
+                    Literal(
+                        UnsignedInteger(
+                            0,
+                        ),
+                    ),
+                ),
+                While(
+                    While {
+                        condition: Infix(
+                            LessThan,
+                            Ident(
+                                Ident(
+                                    "i",
+                                ),
+                            ),
+                            Literal(
+                                UnsignedInteger(
+                                    32,
+                                ),
+                            ),
+                        ),
+                        body: [
+                            Let(
+                                Ident(
+                                    "j",
+                                ),
+                                Literal(
+                                    UnsignedInteger(
+                                        64,
+                                    ),
+                                ),
+                            ),
+                            While(
+                                While {
+                                    condition: Infix(
+                                        GreaterThan,
+                                        Ident(
+                                            Ident(
+                                                "j",
+                                            ),
+                                        ),
+                                        Literal(
+                                            UnsignedInteger(
+                                                0,
+                                            ),
+                                        ),
+                                    ),
+                                    body: [
+                                        If(
+                                            Condition {
+                                                condition: Infix(
+                                                    RightShift,
+                                                    Ident(
+                                                        Ident(
+                                                            "state",
+                                                        ),
+                                                    ),
+                                                    Infix(
+                                                        BitwiseAnd,
+                                                        Ident(
+                                                            Ident(
+                                                                "j",
+                                                            ),
+                                                        ),
+                                                        Ident(
+                                                            Ident(
+                                                                "i",
+                                                            ),
+                                                        ),
+                                                    ),
+                                                ),
+                                                if_body: [
+                                                    Expr(
+                                                        Call(
+                                                            FunctionCall {
+                                                                parameters: [
+                                                                    Literal(
+                                                                        Char(
+                                                                            'O',
+                                                                        ),
+                                                                    ),
+                                                                ],
+                                                                name: "print",
+                                                            },
+                                                        ),
+                                                    ),
+                                                ],
+                                                else_body: Some(
+                                                    [
+                                                        Expr(
+                                                            Call(
+                                                                FunctionCall {
+                                                                    parameters: [
+                                                                        Literal(
+                                                                            Char(
+                                                                                'X',
+                                                                            ),
+                                                                        ),
+                                                                    ],
+                                                                    name: "print",
+                                                                },
+                                                            ),
+                                                        ),
+                                                    ],
+                                                ),
+                                            },
+                                        ),
+                                        Assignment(
+                                            Ident(
+                                                "j",
+                                            ),
+                                            Infix(
+                                                Minus,
+                                                Ident(
+                                                    Ident(
+                                                        "j",
+                                                    ),
+                                                ),
+                                                Literal(
+                                                    UnsignedInteger(
+                                                        1,
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ),
+                            Expr(
+                                Call(
+                                    FunctionCall {
+                                        parameters: [
+                                            Literal(
+                                                Char(
+                                                    '\n',
+                                                ),
+                                            ),
+                                        ],
+                                        name: "print",
+                                    },
+                                ),
+                            ),
+                            Assignment(
+                                Ident(
+                                    "i",
+                                ),
+                                Infix(
+                                    Plus,
+                                    Ident(
+                                        Ident(
+                                            "i",
+                                        ),
+                                    ),
+                                    Literal(
+                                        UnsignedInteger(
+                                            1,
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        },
+    ),
+    Expr(
+        Call(
+            FunctionCall {
+                parameters: [],
+                name: "main",
+            },
+        ),
+    ),
+]

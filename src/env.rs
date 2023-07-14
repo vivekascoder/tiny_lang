@@ -11,10 +11,10 @@ pub struct Env {
     outer: Option<Rc<RefCell<Env>>>,
 }
 
-enum R<'a> {
-    A { val: &'a mut MemoryObject },
-    B { val: RefMut<'a, Env> },
-}
+// enum R<'a> {
+//     A { val: &'a mut MemoryObject },
+//     B { val: RefMut<'a, Env> },
+// }
 
 impl Env {
     pub fn new() -> Self {
@@ -47,7 +47,20 @@ impl Env {
             Some(v) => Some(v.clone()),
             None => match self.outer {
                 None => None,
-                Some(ref outer) => outer.borrow().get_ref(key),
+                Some(ref outer) => {
+                    let a = outer.borrow();
+                    a.get_ref(key)
+                }
+            },
+        };
+    }
+
+    pub fn get_ref_mut(&mut self, key: &str) -> Option<&mut MemoryObject> {
+        return match self.store.get_mut(key) {
+            Some(v) => Some(v),
+            None => match self.outer {
+                None => None,
+                Some(ref outer) => outer.borrow_mut().get_ref_mut(key),
             },
         };
     }

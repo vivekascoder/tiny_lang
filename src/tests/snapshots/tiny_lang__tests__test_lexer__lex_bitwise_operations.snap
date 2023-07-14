@@ -1,0 +1,281 @@
+---
+source: src/tests/test_lexer.rs
+expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
+---
+[
+    Token {
+        type_: KeywordLet,
+        pos: (
+            5,
+            8,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "a",
+        ),
+        pos: (
+            9,
+            10,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            11,
+            12,
+        ),
+    },
+    Token {
+        type_: Usize(
+            45,
+        ),
+        pos: (
+            13,
+            15,
+        ),
+    },
+    Token {
+        type_: Pipe,
+        pos: (
+            16,
+            17,
+        ),
+    },
+    Token {
+        type_: Usize(
+            45,
+        ),
+        pos: (
+            18,
+            20,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            20,
+            21,
+        ),
+    },
+    Token {
+        type_: KeywordLet,
+        pos: (
+            26,
+            29,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "b",
+        ),
+        pos: (
+            30,
+            31,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            32,
+            33,
+        ),
+    },
+    Token {
+        type_: Usize(
+            45,
+        ),
+        pos: (
+            34,
+            36,
+        ),
+    },
+    Token {
+        type_: Carrot,
+        pos: (
+            37,
+            38,
+        ),
+    },
+    Token {
+        type_: Usize(
+            3,
+        ),
+        pos: (
+            39,
+            40,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            40,
+            41,
+        ),
+    },
+    Token {
+        type_: KeywordLet,
+        pos: (
+            46,
+            49,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "c",
+        ),
+        pos: (
+            50,
+            51,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            52,
+            53,
+        ),
+    },
+    Token {
+        type_: Usize(
+            34,
+        ),
+        pos: (
+            54,
+            56,
+        ),
+    },
+    Token {
+        type_: Ampersand,
+        pos: (
+            57,
+            58,
+        ),
+    },
+    Token {
+        type_: Usize(
+            2,
+        ),
+        pos: (
+            59,
+            60,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            60,
+            61,
+        ),
+    },
+    Token {
+        type_: KeywordLet,
+        pos: (
+            66,
+            69,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "d",
+        ),
+        pos: (
+            70,
+            71,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            72,
+            73,
+        ),
+    },
+    Token {
+        type_: Usize(
+            34,
+        ),
+        pos: (
+            74,
+            76,
+        ),
+    },
+    Token {
+        type_: RightShift,
+        pos: (
+            77,
+            79,
+        ),
+    },
+    Token {
+        type_: Usize(
+            1,
+        ),
+        pos: (
+            80,
+            81,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            81,
+            82,
+        ),
+    },
+    Token {
+        type_: KeywordLet,
+        pos: (
+            87,
+            90,
+        ),
+    },
+    Token {
+        type_: Identifier(
+            "e",
+        ),
+        pos: (
+            91,
+            92,
+        ),
+    },
+    Token {
+        type_: Equal,
+        pos: (
+            93,
+            94,
+        ),
+    },
+    Token {
+        type_: Usize(
+            1,
+        ),
+        pos: (
+            95,
+            96,
+        ),
+    },
+    Token {
+        type_: RightShift,
+        pos: (
+            97,
+            99,
+        ),
+    },
+    Token {
+        type_: Usize(
+            34,
+        ),
+        pos: (
+            100,
+            102,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            102,
+            103,
+        ),
+    },
+]

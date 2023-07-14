@@ -169,9 +169,30 @@ impl Lexer {
                 Ok(self.token(TokenType::RParen, (self.cur - 1, self.cur)))
             }
 
+            '&' => {
+                self.bump();
+                Ok(self.token(TokenType::Ampersand, (self.cur - 1, self.cur)))
+            }
+
+            '|' => {
+                self.bump();
+                Ok(self.token(TokenType::Pipe, (self.cur - 1, self.cur)))
+            }
+
+            '^' => {
+                self.bump();
+                Ok(self.token(TokenType::Carrot, (self.cur - 1, self.cur)))
+            }
+
             '<' => {
                 self.bump();
-                Ok(self.token(TokenType::LessThan, (self.cur - 1, self.cur)))
+                match self.current() {
+                    '<' => {
+                        self.bump();
+                        Ok(self.token(TokenType::LeftShift, (self.cur - 2, self.cur)))
+                    }
+                    _ => Ok(self.token(TokenType::LessThan, (self.cur - 1, self.cur))),
+                }
             }
 
             '>' => {
@@ -181,6 +202,10 @@ impl Lexer {
                     '=' => {
                         self.bump();
                         Ok(self.token(TokenType::GreaterThanEqual, (self.cur - 2, self.cur)))
+                    }
+                    '>' => {
+                        self.bump();
+                        Ok(self.token(TokenType::RightShift, (self.cur - 2, self.cur)))
                     }
                     _ => Ok(self.token(TokenType::GreaterThan, (self.cur - 1, self.cur))),
                 }

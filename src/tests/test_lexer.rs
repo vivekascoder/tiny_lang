@@ -46,3 +46,15 @@ fn test_function_decl_and_call() {
     "#;
     insta::assert_debug_snapshot!(Lexer::new("", code).into_iter().collect::<Vec<Token>>());
 }
+
+#[test]
+fn test_lex_bitwise_operations() {
+    let code = r#"
+    let a = 45 | 45;
+    let b = 45 ^ 3;
+    let c = 34 & 2;
+    let d = 34 << 1;
+    let e = 1 >> 34;
+    "#;
+    insta::assert_debug_snapshot!(Lexer::new("", code).into_iter().collect::<Vec<Token>>());
+}

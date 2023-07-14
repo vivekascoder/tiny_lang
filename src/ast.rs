@@ -16,6 +16,10 @@ pub enum Precedence {
     Prefix,      // -X or !X
     Call,        // myFunction(x)
     Index,       // array[index]
+    LRShift,
+    BitwiseAnd,
+    BitwiseXor,
+    BitwiseOr,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,6 +82,13 @@ pub enum Infix {
     GreaterThan,
     LessThanEqual,
     LessThan,
+
+    // Bitwise operations
+    LeftShift,
+    RightShift,
+    BitwiseAnd,
+    BitwiseXor,
+    BitwiseOr,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -164,12 +175,17 @@ pub enum TokenType {
     LBrace, // {
     RBrace, // }
     Comma,
-    SQuote,  // '
-    DQuote,  // "
-    BSlash,  // \
-    NewLine, // \n
-    Tab,     // \t
-    Space,   // ' '
+    SQuote,     // '
+    DQuote,     // "
+    BSlash,     // \
+    NewLine,    // \n
+    Tab,        // \t
+    Space,      // ' '
+    LeftShift,  // <<
+    RightShift, // >>
+    Ampersand,  // &
+    Carrot,     // ^
+    Pipe,       // |
 
     // Keywords
     KeywordLet,
@@ -233,6 +249,11 @@ impl Display for TokenType {
             TokenType::KeywordWhile => write!(f, "while"),
             TokenType::SymbolReturn => write!(f, "=>"),
             TokenType::String(s) => write!(f, "\"{}\"", s),
+            TokenType::LeftShift => write!(f, "<<"),
+            TokenType::RightShift => write!(f, ">>"),
+            TokenType::Pipe => write!(f, "|"),
+            TokenType::Carrot => write!(f, "^"),
+            TokenType::Ampersand => write!(f, "&"),
         }
     }
 }

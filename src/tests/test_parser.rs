@@ -140,3 +140,14 @@ fn test_assignement_parsing() {
     info!("AST generated for the program: {:#?}", &ast);
     insta::assert_debug_snapshot!(&ast);
 }
+
+#[test]
+fn test_bitwise_shift_parsing() {
+    setup();
+    let code = r#"
+    let a = 5 << 1;
+    "#;
+    let ast = Parser::new("", code).parse();
+    info!("AST generated for the program: {:#?}", &ast);
+    insta::assert_debug_snapshot!(&ast);
+}

@@ -57,6 +57,12 @@ impl Interpreter {
                         Infix::LessThanEqual => Ok(ExprResult::Bool(l <= r)),
                         Infix::DoubleEqual => Ok(ExprResult::Bool(l == r)),
                         Infix::NotEqual => Ok(ExprResult::Bool(l != r)),
+
+                        Infix::LeftShift => Ok(ExprResult::UnsignedInteger(l << r)),
+                        Infix::RightShift => Ok(ExprResult::UnsignedInteger(l >> r)),
+                        Infix::BitwiseAnd => Ok(ExprResult::UnsignedInteger(l & r)),
+                        Infix::BitwiseXor => Ok(ExprResult::UnsignedInteger(l ^ r)),
+                        Infix::BitwiseOr => Ok(ExprResult::UnsignedInteger(l | r)),
                     };
                 } else {
                     bail!("Types don't match");
@@ -344,14 +350,12 @@ impl Interpreter {
             Statement::Assignment(ident, expr) => {
                 let expr_result = self.eval_expr(expr)?;
 
-                let store = self.env.borrow();
+                let mut store = self.env.borrow_mut();
                 let env_var = store.exists(&ident.0);
                 if !env_var {
                     bail!("identifier {:?} isn't in the environment.", &ident.0);
                 }
-                self.env
-                    .borrow_mut()
-                    .set(&ident.0, MemoryObject::ExprResult(expr_result));
+                store.set(&ident.0, MemoryObject::ExprResult(expr_result));
                 Ok(ExprResult::Void)
             }
             Statement::While(while_) => loop {

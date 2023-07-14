@@ -1,0 +1,26 @@
+---
+source: src/tests/test_parser.rs
+expression: "&ast"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "a",
+            ),
+            Infix(
+                BitwiseOr,
+                Literal(
+                    UnsignedInteger(
+                        45,
+                    ),
+                ),
+                Literal(
+                    UnsignedInteger(
+                        243,
+                    ),
+                ),
+            ),
+        ),
+    ],
+)

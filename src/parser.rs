@@ -146,6 +146,11 @@ impl Parser {
         }
         self.bump()?;
 
+        info!(
+            "current token before starting to parse function paramerters is: {:?}, ",
+            self.current_token
+        );
+
         let mut params: Vec<(Ident, Type)> = vec![];
 
         // Start parsing parameters
@@ -153,6 +158,10 @@ impl Parser {
             // parse ident-> : ->type
             let param_name = match self.next_token.as_ref() {
                 TokenType::Identifier(ref n) => Rc::clone(n),
+                TokenType::RParen => {
+                    self.bump()?;
+                    break;
+                }
                 _ => {
                     bail!("next token to parse function parameters should be an Identifier, got {:?} instead", &self.next_token);
                 }
@@ -368,6 +377,10 @@ impl Parser {
             TokenType::Divide | TokenType::Multiply => Precedence::Product,
             TokenType::LBrace => Precedence::Index,
             TokenType::LParen => Precedence::Call,
+            TokenType::LeftShift | TokenType::RightShift => Precedence::LRShift,
+            TokenType::Ampersand => Precedence::BitwiseAnd,
+            TokenType::Carrot => Precedence::BitwiseXor,
+            TokenType::Pipe => Precedence::BitwiseOr,
             _ => Precedence::Lowest,
         }
     }
@@ -466,7 +479,12 @@ impl Parser {
                 | TokenType::LessThan
                 | TokenType::LessThanEqual
                 | TokenType::GreaterThan
-                | TokenType::GreaterThanEqual => {
+                | TokenType::GreaterThanEqual
+                | TokenType::LeftShift
+                | TokenType::RightShift
+                | TokenType::Ampersand
+                | TokenType::Carrot
+                | TokenType::Pipe => {
                     self.bump()?;
 
                     let infix = match self.current_token.as_ref() {
@@ -480,6 +498,11 @@ impl Parser {
                         TokenType::LessThanEqual => Infix::LessThanEqual,
                         TokenType::GreaterThan => Infix::GreaterThan,
                         TokenType::GreaterThanEqual => Infix::GreaterThanEqual,
+                        TokenType::LeftShift => Infix::LeftShift,
+                        TokenType::RightShift => Infix::RightShift,
+                        TokenType::Ampersand => Infix::BitwiseAnd,
+                        TokenType::Carrot => Infix::BitwiseXor,
+                        TokenType::Pipe => Infix::BitwiseOr,
                         _ => {
                             bail!("{:?} is not a valid infix operator.", &self.next_token);
                         }
@@ -499,8 +522,16 @@ impl Parser {
                 TokenType::LParen => {
                     let mut params: Vec<Expr> = vec![];
                     self.bump()?;
+                    info!(
+                        "self.current before bparsing param: {:?}",
+                        self.current_token
+                    );
 
                     while !self.current_token_is(&Rc::new(TokenType::RParen)) {
+                        if self.next_token_is(&Rc::new(TokenType::RParen)) {
+                            self.bump()?;
+                            break;
+                        }
                         self.bump()?;
                         let param = self.parse_expression(Precedence::Lowest)?;
                         info!("param: {:?}", param);
