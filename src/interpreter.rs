@@ -126,6 +126,7 @@ impl Interpreter {
         }
     }
 
+    /// TODO: finish this?
     fn eval_prefix_expr(&self, operator: Prefix, expr: Expr) -> Result<ExprResult> {
         Ok(ExprResult::Void)
     }
