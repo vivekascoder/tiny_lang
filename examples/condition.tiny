@@ -1,4 +1,11 @@
+/**
+* Comment
+**/
 
+let something = 's';
+let a = "sgsg";
+let a: isize = -34;
+let s: bool = false;
 
 // Function to return greatest among three passed numbers.
 fun greatest(a: usize, b: usize, c: usize) => usize {
@@ -18,5 +25,7 @@ fun greatest(a: usize, b: usize, c: usize) => usize {
 }
 
 
-// Call and print the result.
+/**
+* Let's call the function.
+**/
 print(greatest(34, 46, 2));

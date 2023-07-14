@@ -10,16 +10,25 @@
     "Programming Languages"
   ],
   "contributes": {
-    "languages": [{
-      "id": "TinyLang",
-      "aliases": ["Tiny Lang", "TinyLang"],
-      "extensions": ["Tiny Lang is a type safe general purpose programming language"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "TinyLang",
-      "scopeName": "source.tiny_lang",
-      "path": "./syntaxes/TinyLang.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "TinyLang",
+        "aliases": [
+          "Tiny Lang",
+          "TinyLang"
+        ],
+        "extensions": [
+          ".tiny"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "TinyLang",
+        "scopeName": "source.tiny_lang",
+        "path": "./syntaxes/TinyLang.tmLanguage.json"
+      }
+    ]
   }
 }
