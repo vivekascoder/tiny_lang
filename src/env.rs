@@ -55,15 +55,15 @@ impl Env {
         };
     }
 
-    pub fn get_ref_mut(&mut self, key: &str) -> Option<&mut MemoryObject> {
-        return match self.store.get_mut(key) {
-            Some(v) => Some(v),
-            None => match self.outer {
-                None => None,
-                Some(ref outer) => outer.borrow_mut().get_ref_mut(key),
-            },
-        };
-    }
+    // pub fn get_ref_mut(&mut self, key: &str) -> Option<&mut MemoryObject> {
+    //     return match self.store.get_mut(key) {
+    //         Some(v) => Some(v),
+    //         None => match self.outer {
+    //             None => None,
+    //             Some(ref outer) => outer.borrow_mut().get_ref_mut(key),
+    //         },
+    //     };
+    // }
 
     pub fn exists(&self, key: &str) -> bool {
         return match self.store.contains_key(key) {
