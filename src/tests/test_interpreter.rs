@@ -9,33 +9,33 @@ use crate::{interpreter::Interpreter, parser::Parser};
 fn test_is_type_expr_result_same() {
     setup();
     assert_eq!(
-        Interpreter::is_type_expr_result_same(&None, &ExprResult::Void),
+        Interpreter::is_type_expr_result_same(None, &ExprResult::Void),
         true
     );
     assert_eq!(
-        Interpreter::is_type_expr_result_same(&None, &ExprResult::Bool(false)),
+        Interpreter::is_type_expr_result_same(None, &ExprResult::Bool(false)),
         false
     );
 
     assert_eq!(
-        Interpreter::is_type_expr_result_same(&Some(Type::Bool), &ExprResult::Bool(false)),
+        Interpreter::is_type_expr_result_same(Some(&Type::Bool), &ExprResult::Bool(false)),
         true
     );
 
     assert_eq!(
-        Interpreter::is_type_expr_result_same(&None, &ExprResult::UnsignedInteger(465)),
+        Interpreter::is_type_expr_result_same(None, &ExprResult::UnsignedInteger(465)),
         false
     );
     assert_eq!(
         Interpreter::is_type_expr_result_same(
-            &Some(Type::UnsignedInteger),
+            Some(&Type::UnsignedInteger),
             &ExprResult::UnsignedInteger(465)
         ),
         true
     );
     assert_eq!(
         Interpreter::is_type_expr_result_same(
-            &Some(Type::UnsignedInteger),
+            Some(&Type::UnsignedInteger),
             &ExprResult::Return(Box::new(ExprResult::UnsignedInteger(345)))
         ),
         true

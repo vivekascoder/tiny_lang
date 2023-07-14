@@ -322,7 +322,7 @@ impl Parser {
 
     fn parse_assign_or_expr(&mut self) -> Result<Statement> {
         let var = match self.current_token.as_ref() {
-            TokenType::Identifier(ref i) => i.clone(),
+            TokenType::Identifier(ref i) => Rc::clone(i),
             _ => {
                 bail!("{:?} is not identifier", self.current_token);
             }

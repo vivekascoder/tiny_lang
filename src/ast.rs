@@ -36,7 +36,7 @@ pub struct FunctionCall {
 #[derive(Clone, Debug, PartialEq)]
 pub struct NativeFunctionCall {
     pub parameters: Vec<ExprResult>,
-    pub name: String,
+    pub name: Rc<str>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

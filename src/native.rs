@@ -9,22 +9,6 @@ pub struct Native {
 
 /// TODO: Add no. of params too so that we don't have to execute to yield parameter mismatch error.
 impl Native {
-    // pub fn form_fn_call(fn_call: &NativeFunctionCall) -> Result<Self> {
-    //     match fn_call.name.as_str() {
-    //         "print" => {
-    //             if !(fn_call.parameters.len() == 1) {
-    //                 bail!(
-    //                     "Expected 1 parameter for native function `print` but got {}",
-    //                     fn_call.parameters.len()
-    //                 );
-    //             }
-    //             Ok(Native::Print(fn_call.parameters[0].clone()))
-    //         }
-    //         _ => {
-    //             bail!("`{} is not a valid native function`", fn_call.name.as_str());
-    //         }
-    //     }
-    // }
     pub fn new() -> Self {
         let mut native = Native {
             functions: HashMap::new(),
