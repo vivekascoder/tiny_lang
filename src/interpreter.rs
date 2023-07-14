@@ -70,6 +70,33 @@ impl Interpreter {
                 }
             }
 
+            ExprResult::SignedInteger(l) => {
+                if let ExprResult::SignedInteger(r) = right_result {
+                    return match infix {
+                        Infix::Plus => Ok(ExprResult::SignedInteger(l + r)),
+                        Infix::Minus => Ok(ExprResult::SignedInteger(l - r)),
+                        Infix::Multiply => Ok(ExprResult::SignedInteger(l * r)),
+                        Infix::Divide => Ok(ExprResult::SignedInteger(l / r)),
+
+                        // Comparison
+                        Infix::GreaterThan => Ok(ExprResult::Bool(l > r)),
+                        Infix::GreaterThanEqual => Ok(ExprResult::Bool(l >= r)),
+                        Infix::LessThan => Ok(ExprResult::Bool(l < r)),
+                        Infix::LessThanEqual => Ok(ExprResult::Bool(l <= r)),
+                        Infix::DoubleEqual => Ok(ExprResult::Bool(l == r)),
+                        Infix::NotEqual => Ok(ExprResult::Bool(l != r)),
+
+                        Infix::LeftShift => Ok(ExprResult::SignedInteger(l << r)),
+                        Infix::RightShift => Ok(ExprResult::SignedInteger(l >> r)),
+                        Infix::BitwiseAnd => Ok(ExprResult::SignedInteger(l & r)),
+                        Infix::BitwiseXor => Ok(ExprResult::SignedInteger(l ^ r)),
+                        Infix::BitwiseOr => Ok(ExprResult::SignedInteger(l | r)),
+                    };
+                } else {
+                    bail!("Types don't match");
+                }
+            }
+
             ExprResult::Bool(l) => {
                 if let ExprResult::Bool(r) = right_result {
                     return match infix {
@@ -262,16 +289,26 @@ impl Interpreter {
                 Type::Bool => {
                     if let ExprResult::Bool(_) = expr_result {
                         return true;
-                    } else {
-                        return false;
                     }
+                    false
                 }
                 Type::UnsignedInteger => {
                     if let ExprResult::UnsignedInteger(_) = expr_result {
                         return true;
-                    } else {
-                        false
                     }
+                    false
+                }
+                Type::SignedInteger => {
+                    if let ExprResult::SignedInteger(_) = expr_result {
+                        return true;
+                    }
+                    false
+                }
+                Type::Char => {
+                    if let ExprResult::Char(_) = expr_result {
+                        return true;
+                    }
+                    false
                 }
             },
         }
@@ -323,8 +360,16 @@ impl Interpreter {
     fn eval_statement(&mut self, s: Statement) -> Result<ExprResult> {
         info!("Current statement: {:?}", &s);
         match s {
-            Statement::Let(ident, expr) => {
+            Statement::Let(ident, type_, expr) => {
                 let expr_result = self.eval_expr(expr)?;
+
+                if !Self::is_type_expr_result_same(type_.as_ref(), &expr_result) {
+                    bail!(
+                        "let statement results in {:?} which is not of type: {:?}",
+                        &expr_result,
+                        &type_
+                    )
+                }
 
                 let scope = self.env.get_mut_scope();
                 scope.insert(ident.0, MemoryObject::ExprResult(expr_result));

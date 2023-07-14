@@ -46,6 +46,7 @@ impl Lexer {
         match s {
             "let" => Some(TokenType::KeywordLet),
             "usize" => Some(TokenType::KeywordUsize),
+            "isize" => Some(TokenType::KeywordIsize),
             "fun" => Some(TokenType::KeywordFun),
             "return" => Some(TokenType::KeywordReturn),
             "if" => Some(TokenType::KeywordIf),

@@ -9,15 +9,15 @@ Ok(
                 "a",
             ),
             Infix(
-                BitwiseOr,
+                LeftShift,
                 Literal(
                     UnsignedInteger(
-                        45,
+                        5,
                     ),
                 ),
                 Literal(
                     UnsignedInteger(
-                        243,
+                        1,
                     ),
                 ),
             ),

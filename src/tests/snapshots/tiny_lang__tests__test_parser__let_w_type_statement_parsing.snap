@@ -1,0 +1,45 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(\"\", code).parse()"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "something",
+            ),
+            Some(
+                SignedInteger,
+            ),
+            Infix(
+                Minus,
+                Infix(
+                    Plus,
+                    Literal(
+                        UnsignedInteger(
+                            454,
+                        ),
+                    ),
+                    Infix(
+                        Multiply,
+                        Literal(
+                            UnsignedInteger(
+                                3,
+                            ),
+                        ),
+                        Literal(
+                            UnsignedInteger(
+                                4,
+                            ),
+                        ),
+                    ),
+                ),
+                Literal(
+                    UnsignedInteger(
+                        35,
+                    ),
+                ),
+            ),
+        ),
+    ],
+)

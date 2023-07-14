@@ -74,6 +74,15 @@ impl Parser {
             _ => panic!("identifier isn't here."),
         };
         self.bump()?;
+        let mut type_: Option<Type> = None;
+
+        // Parse an optional type for let
+        if self.next_token_is(&Rc::new(TokenType::Colon)) {
+            self.bump()?;
+
+            type_ = Some(self.keyword_to_type(&self.next_token)?);
+            self.bump()?;
+        }
 
         // next token should be assign.
         if !self.expect_next_token(&Rc::new(TokenType::Equal))? {
@@ -95,7 +104,7 @@ impl Parser {
         }
         self.bump()?;
 
-        Ok(Statement::Let(Ident(Rc::clone(&name)), expr))
+        Ok(Statement::Let(Ident(Rc::clone(&name)), type_, expr))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement> {
@@ -117,6 +126,8 @@ impl Parser {
         match tok {
             TokenType::KeywordUsize => Ok(Type::UnsignedInteger),
             TokenType::KeywordBool => Ok(Type::Bool),
+            TokenType::KeywordChar => Ok(Type::Char),
+            TokenType::KeywordIsize => Ok(Type::SignedInteger),
             _ => {
                 bail!("{:?} is not a valid parameter type.", tok);
             }
