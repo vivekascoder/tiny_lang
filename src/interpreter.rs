@@ -363,12 +363,14 @@ impl Interpreter {
             Statement::Let(ident, type_, expr) => {
                 let expr_result = self.eval_expr(expr)?;
 
-                if !Self::is_type_expr_result_same(type_.as_ref(), &expr_result) {
-                    bail!(
-                        "let statement results in {:?} which is not of type: {:?}",
-                        &expr_result,
-                        &type_
-                    )
+                if let Some(v) = type_ {
+                    if !Self::is_type_expr_result_same(Some(&v), &expr_result) {
+                        bail!(
+                            "let statement results in {:?} which is not of type: {:?}",
+                            &expr_result,
+                            v
+                        )
+                    }
                 }
 
                 let scope = self.env.get_mut_scope();
