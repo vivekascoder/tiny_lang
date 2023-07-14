@@ -80,7 +80,7 @@ impl Parser {
         if self.next_token_is(&Rc::new(TokenType::Colon)) {
             self.bump()?;
 
-            let type_ = Some(self.keyword_to_type(&self.next_token)?);
+            type_ = Some(self.keyword_to_type(&self.next_token)?);
             self.bump()?;
         }
 
