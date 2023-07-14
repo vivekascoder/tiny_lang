@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::ast::*;
 use anyhow::{bail, Result};
 use log::info;
@@ -284,8 +286,10 @@ impl Lexer {
                             if let Some(keyword) = self.parse_keyword(&identifier) {
                                 return Ok(self.token(keyword, (start, self.cur)));
                             } else {
-                                return Ok(self
-                                    .token(TokenType::Identifier(identifier), (start, self.cur)));
+                                return Ok(self.token(
+                                    TokenType::Identifier(Rc::from(identifier.as_str())),
+                                    (start, self.cur),
+                                ));
                             }
                         }
                     }

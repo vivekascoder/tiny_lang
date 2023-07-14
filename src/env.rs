@@ -1,10 +1,19 @@
 use crate::ast::MemoryObject;
-use std::collections::HashMap;
+use std::{
+    cell::{RefCell, RefMut},
+    collections::HashMap,
+    rc::Rc,
+};
 
 #[derive(Debug, Clone)]
 pub struct Env {
-    store: HashMap<String, MemoryObject>,
-    outer: Option<Box<Env>>,
+    store: HashMap<Rc<str>, MemoryObject>,
+    outer: Option<Rc<RefCell<Env>>>,
+}
+
+enum R<'a> {
+    A { val: &'a mut MemoryObject },
+    B { val: RefMut<'a, Env> },
 }
 
 impl Env {
@@ -15,49 +24,45 @@ impl Env {
         }
     }
 
-    pub fn cloned_outer(&mut self) -> Env {
-        if let Some(ref outer) = self.outer {
-            *outer.clone()
-        } else {
-            Self::new()
-        }
-    }
-
-    pub fn insert(&mut self, key: String, val: MemoryObject) {
+    pub fn insert(&mut self, key: Rc<str>, val: MemoryObject) {
         self.store.insert(key, val);
     }
 
-    pub fn get_ref_mut(&mut self, key: &str) -> Option<&mut MemoryObject> {
-        return match self.store.get_mut(key) {
-            Some(v) => Some(v),
+    pub fn set(&mut self, key: &str, value: MemoryObject) {
+        match self.store.get_mut(key) {
+            Some(v) => {
+                *v = value;
+            }
             None => match self.outer {
-                None => None,
-                Some(ref mut outer) => outer.get_ref_mut(key),
+                None => {}
+                Some(ref v) => {
+                    v.borrow_mut().set(key, value);
+                }
             },
         };
     }
 
-    pub fn get_ref(&self, key: &str) -> Option<&MemoryObject> {
+    pub fn get_ref(&self, key: &str) -> Option<MemoryObject> {
         return match self.store.get(key) {
-            Some(v) => Some(v),
+            Some(v) => Some(v.clone()),
             None => match self.outer {
                 None => None,
-                Some(ref outer) => outer.get_ref(key),
+                Some(ref outer) => outer.borrow().get_ref(key),
             },
         };
     }
 
-    pub fn exists(&mut self, key: &str) -> bool {
+    pub fn exists(&self, key: &str) -> bool {
         return match self.store.contains_key(key) {
             true => true,
             false => match self.outer {
                 None => false,
-                Some(ref mut outer) => outer.exists(key),
+                Some(ref outer) => outer.borrow().exists(key),
             },
         };
     }
 
-    pub fn new_with_outer(outer: Box<Env>) -> Self {
+    pub fn new_with_outer(outer: Rc<RefCell<Env>>) -> Self {
         Self {
             store: HashMap::new(),
             outer: Some(outer),

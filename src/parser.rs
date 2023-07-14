@@ -1,14 +1,13 @@
-use std::sync::Arc;
-
 use crate::ast::*;
 use crate::lexer::Lexer;
 use anyhow::{anyhow, bail, Result};
 use log::info;
+use std::rc::Rc;
 
 pub struct Parser {
     lexer: Lexer,
-    current_token: TokenType,
-    next_token: TokenType,
+    current_token: Rc<TokenType>,
+    next_token: Rc<TokenType>,
     errors: Vec<anyhow::Error>,
 }
 
@@ -16,8 +15,8 @@ impl Parser {
     pub fn new(module: &str, source: &str) -> Self {
         let mut parser = Self {
             lexer: Lexer::new(module, source),
-            current_token: TokenType::EOF,
-            next_token: TokenType::EOF,
+            current_token: Rc::new(TokenType::EOF),
+            next_token: Rc::new(TokenType::EOF),
             errors: vec![],
         };
         parser.bump().unwrap();
@@ -38,12 +37,12 @@ impl Parser {
     }
 
     fn bump(&mut self) -> Result<()> {
-        self.current_token = self.next_token.clone();
-        self.next_token = self.lexer.next()?.type_;
+        self.current_token = Rc::clone(&self.next_token);
+        self.next_token = Rc::new(self.lexer.next()?.type_);
         Ok(())
     }
 
-    fn expect_next_token(&mut self, token: &TokenType) -> Result<bool> {
+    fn expect_next_token(&mut self, token: &Rc<TokenType>) -> Result<bool> {
         if self.next_token_is(token) {
             self.bump()?;
             Ok(true)
@@ -61,23 +60,23 @@ impl Parser {
         ))
     }
 
-    fn next_token_is(&self, token: &TokenType) -> bool {
-        self.next_token == *token
+    fn next_token_is(&self, token: &Rc<TokenType>) -> bool {
+        &self.next_token == token
     }
-    fn current_token_is(&self, token: &TokenType) -> bool {
-        self.current_token == *token
+    fn current_token_is(&self, token: &Rc<TokenType>) -> bool {
+        &self.current_token == token
     }
 
     fn parse_let_statement(&mut self) -> Result<Statement> {
         // the current token is `let`
-        let name = match &self.next_token {
+        let name = match self.next_token.as_ref() {
             TokenType::Identifier(name) => name.clone(),
             _ => panic!("identifier isn't here."),
         };
         self.bump()?;
 
         // next token should be assign.
-        if !self.expect_next_token(&TokenType::Equal)? {
+        if !self.expect_next_token(&Rc::new(TokenType::Equal))? {
             panic!("next token is not assign/equal.")
         }
 
@@ -87,7 +86,7 @@ impl Parser {
         // current token should be expression
         let expr = self.parse_expression(Precedence::Lowest)?;
 
-        if !self.expect_next_token(&TokenType::SemiColon)? {
+        if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
             bail!(
                 "Line: {}, Col: {}, `;` not found",
                 self.lexer.get_row(),
@@ -96,13 +95,13 @@ impl Parser {
         }
         self.bump()?;
 
-        Ok(Statement::Let(Ident(name), expr))
+        Ok(Statement::Let(Ident(Rc::clone(&name)), expr))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement> {
         match self.parse_expression(Precedence::Lowest) {
             Ok(v) => {
-                if !self.expect_next_token(&TokenType::SemiColon)? {
+                if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
                     bail!("`;` not found at the end in expression statment.");
                 }
                 self.bump()?;
@@ -127,8 +126,8 @@ impl Parser {
     fn parse_function_statement(&mut self) -> Result<Statement> {
         // current token is `fun`.
 
-        let fn_name = match self.next_token {
-            TokenType::Identifier(ref n) => n.clone(),
+        let fn_name = match self.next_token.as_ref() {
+            TokenType::Identifier(n) => Rc::clone(&n),
             _ => {
                 bail!(
                     "next token to parse function should be Identifier, got {:?} instead",
@@ -139,7 +138,7 @@ impl Parser {
         self.bump()?;
 
         // TODO: use `expect_next_token()`
-        if !self.next_token_is(&TokenType::LParen) {
+        if !self.next_token_is(&Rc::new(TokenType::LParen)) {
             bail!(
                 "next token to parse function should be LParen, got {:?} instead",
                 &self.next_token
@@ -150,17 +149,17 @@ impl Parser {
         let mut params: Vec<(Ident, Type)> = vec![];
 
         // Start parsing parameters
-        while !self.current_token_is(&TokenType::RParen) {
+        while !self.current_token_is(&Rc::new(TokenType::RParen)) {
             // parse ident-> : ->type
-            let param_name = match self.next_token {
-                TokenType::Identifier(ref n) => n.clone(),
+            let param_name = match self.next_token.as_ref() {
+                TokenType::Identifier(ref n) => Rc::clone(n),
                 _ => {
                     bail!("next token to parse function parameters should be an Identifier, got {:?} instead", &self.next_token);
                 }
             };
             self.bump()?;
 
-            if !self.next_token_is(&TokenType::Colon) {
+            if !self.next_token_is(&Rc::new(TokenType::Colon)) {
                 bail!(
                     "next token to parse function parameters should be an Colon, got {:?} instead",
                     &self.next_token
@@ -171,7 +170,9 @@ impl Parser {
             let type_ = self.keyword_to_type(&self.next_token)?;
             self.bump()?;
 
-            if !(self.next_token_is(&TokenType::Comma) || self.next_token_is(&TokenType::RParen)) {
+            if !(self.next_token_is(&Rc::new(TokenType::Comma))
+                || self.next_token_is(&Rc::new(TokenType::RParen)))
+            {
                 bail!("expected Command, but found {:?}", self.next_token);
             }
             self.bump()?;
@@ -180,18 +181,18 @@ impl Parser {
         }
 
         // parse the optional return type.
-        if !self.expect_next_token(&TokenType::SymbolReturn)? {
+        if !self.expect_next_token(&Rc::new(TokenType::SymbolReturn))? {
             bail!("Expected `=>` but got {:?}", self.next_token);
         }
 
         let mut return_type: Option<Type> = None;
         info!("Next token is: {:?}", self.next_token);
-        if !self.next_token_is(&TokenType::KeywordVoid) {
+        if !self.next_token_is(&Rc::new(TokenType::KeywordVoid)) {
             return_type = Some(self.keyword_to_type(&self.next_token)?);
         }
         self.bump()?;
 
-        if !self.expect_next_token(&TokenType::LBrace)? {
+        if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
             bail!("next token is not `{{`");
         }
 
@@ -212,7 +213,7 @@ impl Parser {
 
         info!("Current token: {:?}", &self.current_token);
 
-        while !self.current_token_is(&TokenType::RBrace) {
+        while !self.current_token_is(&Rc::new(TokenType::RBrace)) {
             statements.push(self.parse_statement()?);
         }
 
@@ -225,7 +226,7 @@ impl Parser {
         self.bump()?;
         let expr = self.parse_expression(Precedence::Lowest)?;
 
-        if !self.expect_next_token(&TokenType::SemiColon)? {
+        if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
             bail!("return statement has no semicolon");
         }
         self.bump()?;
@@ -234,7 +235,7 @@ impl Parser {
     }
 
     fn parse_if_statement(&mut self) -> Result<Statement> {
-        if !self.expect_next_token(&TokenType::LParen)? {
+        if !self.expect_next_token(&Rc::new(TokenType::LParen))? {
             bail!(
                 "parsing if: expected `(` but found {:?}, instead",
                 self.current_token
@@ -248,14 +249,14 @@ impl Parser {
         let expr = self.parse_expression(Precedence::Lowest)?;
         info!("Expression: {:?}", expr);
 
-        if !self.expect_next_token(&TokenType::RParen)? {
+        if !self.expect_next_token(&Rc::new(TokenType::RParen))? {
             bail!(
                 "parsing if: expected `)` but found {:?}, instead",
                 self.current_token
             );
         }
 
-        if !self.expect_next_token(&TokenType::LBrace)? {
+        if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
             bail!(
                 "parsing if: expected `{{` but found {:?}, instead",
                 self.current_token
@@ -267,8 +268,8 @@ impl Parser {
 
         // If next token is `else` then parse else block.
         let mut else_body: Option<BlockStatement> = None;
-        if self.current_token_is(&TokenType::KeywordElse) {
-            if !self.expect_next_token(&TokenType::LBrace)? {
+        if self.current_token_is(&Rc::new(TokenType::KeywordElse)) {
+            if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
                 bail!(
                     "expected `{{` while parsing else body but got {:?}",
                     &self.next_token
@@ -286,7 +287,7 @@ impl Parser {
     }
 
     fn parse_while_statement(&mut self) -> Result<Statement> {
-        if !self.expect_next_token(&TokenType::LParen)? {
+        if !self.expect_next_token(&Rc::new(TokenType::LParen))? {
             bail!("expected `(` but got {:>} instead", self.next_token);
         }
         self.bump()?;
@@ -294,14 +295,14 @@ impl Parser {
         let expr = self.parse_expression(Precedence::Lowest)?;
         info!("Expression: {:?}", expr);
 
-        if !self.expect_next_token(&TokenType::RParen)? {
+        if !self.expect_next_token(&Rc::new(TokenType::RParen))? {
             bail!(
                 "parsing if: expected `)` but found {:?}, instead",
                 self.current_token
             );
         }
 
-        if !self.expect_next_token(&TokenType::LBrace)? {
+        if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
             bail!(
                 "parsing if: expected `{{` but found {:?}, instead",
                 self.current_token
@@ -320,14 +321,14 @@ impl Parser {
     }
 
     fn parse_assign_or_expr(&mut self) -> Result<Statement> {
-        let var = match self.current_token {
-            TokenType::Identifier(ref i) => i.clone(),
+        let var = match self.current_token.as_ref() {
+            TokenType::Identifier(ref i) => Rc::clone(i),
             _ => {
                 bail!("{:?} is not identifier", self.current_token);
             }
         };
 
-        if self.next_token_is(&TokenType::Equal) {
+        if self.next_token_is(&Rc::new(TokenType::Equal)) {
             // parse assignment.
             self.bump()?;
             self.bump()?;
@@ -335,7 +336,7 @@ impl Parser {
 
             info!("=/i {:?}, {:?}", self.current_token, self.next_token);
 
-            if !self.expect_next_token(&TokenType::SemiColon)? {
+            if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
                 bail!("end plx");
             }
             self.bump()?;
@@ -347,7 +348,7 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Statement> {
         info!("Current Token: {:?}", self.current_token);
-        Ok(match self.current_token {
+        Ok(match self.current_token.as_ref() {
             TokenType::KeywordLet => self.parse_let_statement()?,
             TokenType::KeywordIf => self.parse_if_statement()?,
             TokenType::KeywordFun => self.parse_function_statement()?,
@@ -381,34 +382,34 @@ impl Parser {
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
         // Parse the left
-        let mut left = match self.current_token {
-            TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(val)),
-            TokenType::Boolean(val) => Expr::Literal(Literal::Bool(val)),
+        let mut left = match self.current_token.as_ref() {
+            TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(*val)),
+            TokenType::Boolean(val) => Expr::Literal(Literal::Bool(*val)),
             TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
             TokenType::SQuote => {
                 use TokenType::*;
                 // Parse character.
-                let char_val = match self.next_token {
+                let char_val = match self.next_token.as_ref() {
                     Identifier(ref i) => {
                         if i.len() != 1 {
                             bail!("Character should be of length 1");
                         }
-                        i.clone()
+                        Rc::clone(i)
                     }
 
                     // TODO: could use display here.
-                    NewLine => '\n'.to_string(),
-                    Tab => '\t'.to_string(),
-                    Space => ' '.to_string(),
-                    BSlash => '\\'.to_string(),
-                    Minus => '-'.to_string(),
+                    NewLine => Rc::from('\n'.to_string()),
+                    Tab => Rc::from('\t'.to_string()),
+                    Space => Rc::from(' '.to_string()),
+                    BSlash => Rc::from('\\'.to_string()),
+                    Minus => Rc::from('-'.to_string()),
 
                     _ => {
                         bail!("char not found after `'` instead got {:?}", self.next_token);
                     }
                 };
                 self.bump()?;
-                if !self.expect_next_token(&TokenType::SQuote)? {
+                if !self.expect_next_token(&Rc::new(TokenType::SQuote))? {
                     bail!(
                         "character not ended with `'` found {:?} instead.",
                         self.next_token
@@ -420,7 +421,7 @@ impl Parser {
                 // Parse prefix expression.
 
                 // Operator
-                let prefix = match self.current_token {
+                let prefix = match self.current_token.as_ref() {
                     TokenType::Bang => Prefix::Not,
                     TokenType::Plus => Prefix::Plus,
                     TokenType::Minus => Prefix::Minus,
@@ -447,14 +448,14 @@ impl Parser {
         info!("Left: {:?}", left);
 
         // Parse the infix
-        while !self.next_token_is(&TokenType::SemiColon)
+        while !self.next_token_is(&Rc::new(TokenType::SemiColon))
             && precedence < self.next_token_precedence()
         {
             info!(
                 "next token while parsing expression right -> {:?}",
                 self.next_token
             );
-            match self.next_token {
+            match self.next_token.as_ref() {
                 TokenType::Plus
                 | TokenType::Minus
                 | TokenType::Divide
@@ -468,7 +469,7 @@ impl Parser {
                 | TokenType::GreaterThanEqual => {
                     self.bump()?;
 
-                    let infix = match self.current_token {
+                    let infix = match self.current_token.as_ref() {
                         TokenType::Plus => Infix::Plus,
                         TokenType::Minus => Infix::Minus,
                         TokenType::Divide => Infix::Divide,
@@ -499,15 +500,15 @@ impl Parser {
                     let mut params: Vec<Expr> = vec![];
                     self.bump()?;
 
-                    while !self.current_token_is(&TokenType::RParen) {
+                    while !self.current_token_is(&Rc::new(TokenType::RParen)) {
                         self.bump()?;
                         let param = self.parse_expression(Precedence::Lowest)?;
                         info!("param: {:?}", param);
                         params.push(param);
 
                         info!("{:?}, {:?}", self.current_token, self.next_token);
-                        if !(self.next_token_is(&TokenType::Comma)
-                            || self.next_token_is(&TokenType::RParen))
+                        if !(self.next_token_is(&Rc::new(TokenType::Comma))
+                            || self.next_token_is(&Rc::new(TokenType::RParen)))
                         {
                             bail!("sep , while param func");
                         }
@@ -538,7 +539,7 @@ impl Parser {
     /// main function to parse a lexer.
     pub fn parse(&mut self) -> Result<Program> {
         let mut program: Program = vec![];
-        while !self.current_token_is(&TokenType::EOF) {
+        while !self.current_token_is(&Rc::new(TokenType::EOF)) {
             match self.parse_statement() {
                 Ok(stmt) => {
                     info!("Statement: {:?}", &stmt);
