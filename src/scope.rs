@@ -30,13 +30,8 @@ impl ScopeStack {
     }
 
     pub fn exists(&self, key: &str) -> bool {
-        if let Some(v) = self
-            .stack
-            .iter()
-            .rev()
-            .find_map(|s| Some(s.contains_key(key)))
-        {
-            return v;
+        if let Some(_) = self.stack.iter().rev().find_map(|s| Some(s.get(key))) {
+            return true;
         } else {
             return false;
         }

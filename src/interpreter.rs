@@ -1,9 +1,9 @@
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
+use crate::parser::Parser;
 use crate::scope::ScopeStack;
 use crate::{ast::*, native::Native};
-use crate::{env::Env, parser::Parser};
 use anyhow::{bail, Result};
 use log::info;
 // const a: bool = true;
@@ -173,10 +173,6 @@ impl Interpreter {
             return Ok(self.native.execute(&fn_call.name, expr_results)?);
         }
 
-        // let current_env = Rc::clone(&self.env);
-        // let scoped_env = Env::new_with_outer(Rc::clone(&current_env));
-
-        // let store = current_env.borrow();
         let fun = match self.env.get_ref(&fn_call.name) {
             None => {
                 bail!("Can't get the functon")
@@ -212,8 +208,6 @@ impl Interpreter {
                 );
             }
 
-            // self.env
-            //     .borrow_mut()
             block_scope.insert(Rc::clone(&val.0 .0 .0), MemoryObject::ExprResult(val.1));
         }
 
