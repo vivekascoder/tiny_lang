@@ -47,9 +47,10 @@ pub struct NativeFunctionCall {
 pub enum ExprResult {
     Bool(bool),
     UnsignedInteger(usize),
-    Void,
-    Return(Box<ExprResult>),
+    SignedInteger(isize),
     Char(char),
+    Return(Box<ExprResult>),
+    Void,
 }
 
 impl Display for ExprResult {
@@ -57,6 +58,7 @@ impl Display for ExprResult {
         match self {
             Self::Bool(b) => write!(f, "{}", b),
             Self::UnsignedInteger(i) => write!(f, "{}", i),
+            Self::SignedInteger(i) => write!(f, "{}", i),
             Self::Void => write!(f, ""),
             Self::Return(v) => write!(f, "{}", *v),
             Self::Char(c) => write!(f, "{}", c),
@@ -110,7 +112,7 @@ pub struct Ident(pub Rc<str>);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
-    Let(Ident, Expr),
+    Let(Ident, Option<Type>, Expr),
     Assignment(Ident, Expr),
     Function(Function),
     Return(Expr),
@@ -135,7 +137,9 @@ pub struct Condition {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
     UnsignedInteger,
+    SignedInteger,
     Bool,
+    Char,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -190,6 +194,7 @@ pub enum TokenType {
     // Keywords
     KeywordLet,
     KeywordUsize,
+    KeywordIsize,
     KeywordBool,
     KeywordFun,
     KeywordReturn,
@@ -239,6 +244,7 @@ impl Display for TokenType {
             TokenType::Space => write!(f, " "),
             TokenType::KeywordLet => write!(f, "let"),
             TokenType::KeywordUsize => write!(f, "usize"),
+            TokenType::KeywordIsize => write!(f, "isize"),
             TokenType::KeywordBool => write!(f, "bool"),
             TokenType::KeywordFun => write!(f, "fun"),
             TokenType::KeywordReturn => write!(f, "return"),

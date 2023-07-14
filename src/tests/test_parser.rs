@@ -4,12 +4,21 @@ use crate::{parser::Parser, tests::setup};
 
 #[test]
 fn test_let_statement_parsing() {
+    setup();
     let code = "let something = 454 + 3 * 4 - 35; ";
     insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
 #[test]
+fn test_let_w_type_statement_parsing() {
+    setup();
+    let code = "let something: isize = 454 + 3 * 4 - 35; ";
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
 fn test_multiple_let_statement_parsing() {
+    setup();
     let code = r#"
         let something = 454 + 3 * 4 - 35;
         let a = 35 / 3;
