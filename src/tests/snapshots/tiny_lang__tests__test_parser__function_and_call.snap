@@ -1,6 +1,6 @@
 ---
 source: src/tests/test_parser.rs
-expression: "Parser::new(code).parse()"
+expression: "&ast"
 ---
 Ok(
     [
@@ -8,6 +8,7 @@ Ok(
             Ident(
                 "a",
             ),
+            None,
             Literal(
                 UnsignedInteger(
                     445,
@@ -18,6 +19,7 @@ Ok(
             Ident(
                 "b",
             ),
+            None,
             Literal(
                 UnsignedInteger(
                     45,
@@ -65,6 +67,7 @@ Ok(
                                     Ident(
                                         "c",
                                     ),
+                                    None,
                                     Infix(
                                         Plus,
                                         Ident(

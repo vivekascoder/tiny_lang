@@ -360,7 +360,7 @@ impl Parser {
                 bail!("end plx");
             }
             self.bump()?;
-            Ok(Statement::Assignment(Ident(var), expr))
+            Ok(Statement::Mutate(Ident(var), expr))
         } else {
             Ok(self.parse_expression_statement()?)
         }

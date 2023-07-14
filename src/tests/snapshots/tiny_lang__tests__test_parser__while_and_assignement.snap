@@ -8,6 +8,7 @@ Ok(
             Ident(
                 "i",
             ),
+            None,
             Literal(
                 UnsignedInteger(
                     0,
@@ -58,7 +59,7 @@ Ok(
                             },
                         ),
                     ),
-                    Assignment(
+                    Mutate(
                         Ident(
                             "i",
                         ),

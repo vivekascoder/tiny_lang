@@ -8,13 +8,14 @@ Ok(
             Ident(
                 "a",
             ),
+            None,
             Literal(
                 UnsignedInteger(
                     454,
                 ),
             ),
         ),
-        Assignment(
+        Mutate(
             Ident(
                 "a",
             ),

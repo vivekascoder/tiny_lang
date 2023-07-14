@@ -113,7 +113,7 @@ pub struct Ident(pub Rc<str>);
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(Ident, Option<Type>, Expr),
-    Assignment(Ident, Expr),
+    Mutate(Ident, Expr),
     Function(Function),
     Return(Expr),
     If(Condition),

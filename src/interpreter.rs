@@ -390,7 +390,7 @@ impl Interpreter {
                 let _ = self.eval_expr(expr)?;
                 Ok(ExprResult::Void)
             }
-            Statement::Assignment(ident, expr) => {
+            Statement::Mutate(ident, expr) => {
                 let expr_result = self.eval_expr(expr)?;
 
                 let val = self.env.get_mut_ref(&ident.0);
