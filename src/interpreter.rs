@@ -4,7 +4,6 @@ use crate::{ast::*, native::Native};
 use anyhow::{bail, Result};
 use log::info;
 use std::rc::Rc;
-// const a: bool = true;
 
 pub struct Interpreter {
     parser: Parser,
