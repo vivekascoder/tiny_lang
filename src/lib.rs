@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod code;
 pub mod interpreter;
 pub mod lexer;
 pub mod native;
