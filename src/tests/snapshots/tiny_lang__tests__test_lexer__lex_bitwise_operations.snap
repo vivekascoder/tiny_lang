@@ -201,7 +201,7 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
         ),
     },
     Token {
-        type_: RightShift,
+        type_: LeftShift,
         pos: (
             77,
             79,

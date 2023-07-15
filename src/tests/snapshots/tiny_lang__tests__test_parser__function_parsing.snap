@@ -1,6 +1,6 @@
 ---
 source: src/tests/test_parser.rs
-expression: "Parser::new(code).parse()"
+expression: "Parser::new(\"\", code).parse()"
 ---
 Ok(
     [
@@ -23,6 +23,7 @@ Ok(
                         Ident(
                             "something",
                         ),
+                        None,
                         Literal(
                             Bool(
                                 false,
@@ -33,6 +34,7 @@ Ok(
                         Ident(
                             "another_var",
                         ),
+                        None,
                         Infix(
                             Plus,
                             Literal(

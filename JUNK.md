@@ -160,3 +160,5 @@ fun main(): void {
 ## Things that are remaining.
 
 [TODOs](./TODO.md)
+https://github.com/zesterer/ariadne/tree/main
+https://github.com/maciejhirsz/logos

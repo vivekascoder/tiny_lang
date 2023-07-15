@@ -8,6 +8,7 @@ Ok(
             Ident(
                 "a",
             ),
+            None,
             Infix(
                 LeftShift,
                 Literal(

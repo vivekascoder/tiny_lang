@@ -1,21 +1,74 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Tiny Lang",
-  "fileTypes": [".tiny"],
   "patterns": [
     {
       "include": "#keywords"
     },
     {
       "include": "#strings"
+    },
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#block-comments"
+    },
+    {
+      "include": "#constant"
+    },
+    {
+      "include": "#characters"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#type"
     }
   ],
   "repository": {
+    "comment": {
+      "name": "comment.line.TinyLang",
+      "match": "//.*$"
+    },
+    "constant": {
+      "match": "\\b(?:true|false)\\b",
+      "name": "constant.language.TinyLang"
+    },
+    "block-comments": {
+      "name": "comment.block.TinyLang",
+      "begin": "/\\*",
+      "end": "\\*/"
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.TinyLang",
-          "match": "\\b(if|while|for|return|let|fun|import)\\b"
+          "match": "\\b(if|else|while|for|return|let|fun|import)\\b"
+        }
+      ]
+    },
+    "type": {
+      "patterns": [
+        {
+          "name": "storage.type.TinyLang",
+          "match": "\\b(?:int|float|bool|char|void|isize|usize|string)\\b"
+        }
+      ]
+    },
+    "number": {
+      "match": "(?x)        # turn on extended mode\n  -?        # an optional minus\n  (?:\n    0       # a zero\n    |       # ...or...\n    [1-9]   # a 1-9 character\n    \\d*     # followed by zero or more digits\n  )\n  (?:\n    (?:\n      \\.    # a period\n      \\d+   # followed by one or more digits\n    )?\n    (?:\n      [eE]  # an e character\n      [+-]? # followed by an option +/-\n      \\d+   # followed by one or more digits\n    )?      # make exponent optional\n  )?        # make decimal portion optional",
+      "name": "constant.numeric.TinyLang"
+    },
+    "characters": {
+      "name": "string.quoted.single.TinyLang",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.TinyLang",
+          "match": "\\\\."
         }
       ]
     },
