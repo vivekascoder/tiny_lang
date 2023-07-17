@@ -23,6 +23,8 @@ impl Interpreter {
         }
     }
 
+    // pub fn new_repl(source: &str, scope_stack: )
+
     pub fn module(&self) -> String {
         self.parser.module()
     }

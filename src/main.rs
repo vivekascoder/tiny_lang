@@ -28,7 +28,10 @@ enum Commands {
     Ast { file: Option<String> },
 
     /// Playground to interact with tiny lang.
-    Repl,
+    Repl {
+        #[arg(short, long)]
+        with: Option<String>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -79,7 +82,7 @@ fn main() -> Result<()> {
             // TODO: Also return json? but should we as it's another dependency?
             println!("{:#?}", AST::new(&file_name, &program).parse()?);
         }
-        Commands::Repl => {
+        Commands::Repl { with } => {
             let stdin = io::stdin();
             println!("\n# Tiny Lang Repl.");
             println!("Press <C-c> to exit.\n");
@@ -88,12 +91,27 @@ fn main() -> Result<()> {
                 print!("|> ");
                 io::stdout().flush()?;
                 stdin.read_line(&mut code)?;
-                match AST::new("", &code).parse() {
-                    Ok(ast) => {
-                        println!("{:#?}", ast);
+                match with.as_ref().unwrap_or(&"ast".to_string()).as_str() {
+                    "ast" => {
+                        let val = AST::new("", &code).parse();
+                        match val {
+                            Ok(ast) => {
+                                println!("{:#?}", ast);
+                            }
+                            Err(e) => {
+                                eprintln!("Error: {:?}", e);
+                            }
+                        };
                     }
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
+                    "lex" => {
+                        let val = Lexer::new("", &code).into_iter().collect::<Vec<Token>>();
+                        println!("{:#?}", val);
+                    }
+                    "interpret" => {
+                        println!("soon.")
+                    }
+                    _ => {
+                        bail!("som")
                     }
                 };
             }
