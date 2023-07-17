@@ -1,7 +1,8 @@
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use log::info;
-use std::fs;
+use std::io::Write;
+use std::{fs, io};
 use tiny_lang::parser::Parser as AST;
 use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::Lexer};
 
@@ -25,6 +26,9 @@ enum Commands {
 
     /// Prints AST generated for given tiny_lang program.
     Ast { file: Option<String> },
+
+    /// Playground to interact with tiny lang.
+    Repl,
 }
 
 fn main() -> Result<()> {
@@ -74,6 +78,25 @@ fn main() -> Result<()> {
 
             // TODO: Also return json? but should we as it's another dependency?
             println!("{:#?}", AST::new(&file_name, &program).parse()?);
+        }
+        Commands::Repl => {
+            let stdin = io::stdin();
+            println!("\n# Tiny Lang Repl.");
+            println!("Press <C-c> to exit.\n");
+            loop {
+                let mut code = String::new();
+                print!("|> ");
+                io::stdout().flush()?;
+                stdin.read_line(&mut code)?;
+                match AST::new("", &code).parse() {
+                    Ok(ast) => {
+                        println!("{:#?}", ast);
+                    }
+                    Err(e) => {
+                        eprintln!("Error: {:?}", e);
+                    }
+                };
+            }
         }
     }
 

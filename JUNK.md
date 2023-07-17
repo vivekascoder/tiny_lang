@@ -86,76 +86,11 @@ How tihe recursive `ExprResult::Return<Box<ExprResult>>` should be handled?
 For syntax highlighting
 https://github.com/damirka/move-syntax/blob/main/syntaxes/move.tmLanguage.json
 
-```
-printf("Hello World");
-```
+Parse isize or usize based on type.
 
-```ts
-import "module_name";
+### Compiler
 
-const SOME_VAL: i64 = 123;
-
-let var: f64 = 343.4;
-let var2: f64 = var + 3.45;
-
-struct Something {
-    val: i32
-}
-
-fun sum3(a: i32, b: i32, c: i32) => i32 {
-    return a + b + c;
-}
-
-let result: i32 = sum3(1, 2, 3);
-
-fun main(): void {
-    printf("Main function");
-}
-
-```
-
-## Debug
-
-```rs
- [
-    Let(
-        Ident(
-            "something",
-        ),
-        Infix(
-            Plus,
-
-            Literal(
-                SignedInteger(
-                    454,
-                ),
-            ),
-
-            Infix(
-                Multiply,
-                Infix(
-                    Multiply,
-                    Literal(
-                        SignedInteger(
-                            3,
-                        ),
-                    ),
-                    Literal(
-                        SignedInteger(
-                            4,
-                        ),
-                    ),
-                ),
-                Literal(
-                    SignedInteger(
-                        35,
-                    ),
-                ),
-            ),
-        ),
-    ),
-],
-```
+1. If let is `usize` and val is `isize`
 
 ## Things that are remaining.
 

@@ -9,6 +9,7 @@ pub struct Parser {
     current_token: Rc<TokenType>,
     next_token: Rc<TokenType>,
     errors: Vec<anyhow::Error>,
+    current_let_type: Option<Type>,
 }
 
 impl Parser {
@@ -18,6 +19,7 @@ impl Parser {
             current_token: Rc::new(TokenType::EOF),
             next_token: Rc::new(TokenType::EOF),
             errors: vec![],
+            current_let_type: None,
         };
         parser.bump().unwrap();
         parser.bump().unwrap();
@@ -81,12 +83,13 @@ impl Parser {
             self.bump()?;
 
             type_ = Some(self.keyword_to_type(&self.next_token)?);
+            self.current_let_type = type_.clone();
             self.bump()?;
         }
 
         // next token should be assign.
         if !self.expect_next_token(&Rc::new(TokenType::Equal))? {
-            panic!("next token is not assign/equal.")
+            bail!("next token is not assign/equal.")
         }
 
         // next token should be expression.
