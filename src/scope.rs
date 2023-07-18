@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 
 pub type Scope = HashMap<Rc<str>, MemoryObject>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScopeStack {
     stack: Vec<Scope>,
 }

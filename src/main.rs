@@ -4,6 +4,7 @@ use log::info;
 use std::io::Write;
 use std::{fs, io};
 use tiny_lang::parser::Parser as AST;
+use tiny_lang::scope::ScopeStack;
 use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::Lexer};
 
 #[derive(Parser)]
@@ -86,6 +87,8 @@ fn main() -> Result<()> {
             let stdin = io::stdin();
             println!("\n# Tiny Lang Repl.");
             println!("Press <C-c> to exit.\n");
+            let mut scope = ScopeStack::new();
+            scope.push_scope();
             loop {
                 let mut code = String::new();
                 print!("|> ");
@@ -108,7 +111,13 @@ fn main() -> Result<()> {
                         println!("{:#?}", val);
                     }
                     "interpret" => {
-                        println!("soon.")
+                        let mut i = Interpreter::from_scope("", &code, scope.clone());
+
+                        if let Err(e) = i.eval() {
+                            eprintln!("{}", e);
+                        }
+
+                        scope = i.get_stack();
                     }
                     _ => {
                         bail!("som")
