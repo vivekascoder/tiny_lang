@@ -13,6 +13,9 @@ regex = "1.8.4"
 env_logger = "0.10.0"
 log = "0.4.19"
 clap = { version = "4.3.11", features = ["derive"] }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm15-0"] }
+llvm-sys-150 = { package = "llvm-sys", version = "150.1.0", features = ["prefer-dynamic"] }
+
 
 [dev-dependencies]
 insta = { version = "1.30.0", features = ["yaml"] }

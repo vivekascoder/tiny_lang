@@ -92,6 +92,8 @@ Parse isize or usize based on type.
 
 1. If let is `usize` and val is `isize`
 
+Not going to implement a compiler that compile to some IR and a VM that evaluates this IR until I can some interesting reference impls.
+
 ## Things that are remaining.
 
 [TODOs](./TODO.md)
