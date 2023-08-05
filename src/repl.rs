@@ -2,7 +2,7 @@ use anyhow::bail;
 
 use crate::ast::Token;
 use crate::interpreter::Interpreter;
-use crate::lexer::Lexer;
+use crate::lexer::lexer::Lexer;
 use crate::parser::Parser as AST;
 use crate::scope::ScopeStack;
 use std::io;

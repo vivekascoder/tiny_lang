@@ -1,11 +1,10 @@
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use log::info;
-use std::{fs, io};
+use std::fs;
 use tiny_lang::parser::Parser as AST;
 use tiny_lang::repl::start_repl;
-use tiny_lang::scope::ScopeStack;
-use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::Lexer};
+use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::lexer::Lexer};
 
 #[derive(Parser)]
 #[command(

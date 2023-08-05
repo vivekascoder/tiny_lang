@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::lexer::Lexer;
+use crate::lexer::lexer::Lexer;
 use crate::tests::setup;
 
 #[test]
