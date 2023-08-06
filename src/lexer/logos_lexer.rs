@@ -5,7 +5,7 @@ use logos::Logos;
 enum Token {
     #[regex("[a-zA-Z_][a-zA-Z_0-9]*")]
     Ident,
-    #[regex("\"([^\"]*)\"")]
+    #[regex(r#""(?:\\.|[^"])*""#)]
     String,
     #[regex("-?[0-9]+")]
     Number,
@@ -55,8 +55,8 @@ enum Token {
     Comma,
     #[token("'")]
     SQuote, // '
-    #[token("\"")]
-    DQuote, // "
+    // #[token("\"")]
+    // DQuote, // "
     #[token("\\")]
     BSlash, // \
     #[token("<<")]
@@ -119,18 +119,20 @@ mod tests {
     #[test]
     fn test_function_decl_and_call_logos() {
         let code = r#"
-    let a = 445;
-    let b = 45;
-    let bool_var = false;
+        let a = 445;
+        let b = 45;
+        let bool_var = false;
+        let string_val = "this is a \"string";
+        // let char_val = 'a';
 
 
-    fun sum(a: usize, b: usize) => usize {
-        let c = a + b;
-        return c;
-    }
+        fun sum(a: usize, b: usize) => usize {
+            let c = a + b;
+            return c;
+        }
 
-    sum(a, b);
-    "#;
+        sum(a, b);
+        "#;
         insta::assert_debug_snapshot!(Token::lexer(code).collect::<Vec<_>>());
     }
 }

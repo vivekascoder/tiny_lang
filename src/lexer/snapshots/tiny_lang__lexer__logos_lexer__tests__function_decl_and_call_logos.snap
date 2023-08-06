@@ -49,6 +49,21 @@ expression: "Token::lexer(code).collect::<Vec<_>>()"
         SemiColon,
     ),
     Ok(
+        KeywordLet,
+    ),
+    Ok(
+        Ident,
+    ),
+    Ok(
+        Equal,
+    ),
+    Ok(
+        String,
+    ),
+    Ok(
+        SemiColon,
+    ),
+    Ok(
         KeywordFun,
     ),
     Ok(

@@ -103,3 +103,4 @@ https://github.com/maciejhirsz/logos
 ## Resources
 
 - https://github.com/jakubDoka/stackery
+- https://hackmd.io/@Kixiron/rJS7_OEbw
