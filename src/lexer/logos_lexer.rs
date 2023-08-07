@@ -1,9 +1,7 @@
-use std::default;
-
 use logos::{Lexer, Logos};
 
 #[derive(Default, Debug, Clone, PartialEq)]
-enum LexError {
+pub enum LexError {
     CharParseError,
     #[default]
     Other,
@@ -12,7 +10,7 @@ enum LexError {
 #[derive(Logos, Debug, PartialEq)]
 #[logos(error = LexError)]
 #[logos(skip r"([ \t\r\n]*|//[^\n]*)")]
-enum TokenKind<'a> {
+pub enum TokenKind<'a> {
     #[regex("[a-zA-Z_][a-zA-Z_0-9]*")]
     Ident,
     #[regex(r#"(?:")(?:\\.|[^"])*""#, TokenKind::to_str)]
@@ -141,43 +139,5 @@ impl<'a> TokenKind<'a> {
             },
             _ => Err(LexError::CharParseError),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_logos_lexer() {
-        let mut lex = TokenKind::lexer("let =");
-
-        loop {
-            if let Some(v) = lex.next() {
-                println!("> {:?}, {:?}", v, lex.span());
-            } else {
-                break;
-            }
-        }
-    }
-
-    #[test]
-    fn test_function_decl_and_call_logos() {
-        let code = r#"
-        let a = 445;
-        let b = 45;
-        let bool_var = false;
-        let string_val = "this is a \"string";
-        let char_val = '\n';
-
-
-        fun sum(a: usize, b: usize) => usize {
-            let c = a + b;
-            return c;
-        }
-
-        sum(a, b);
-        "#;
-        insta::assert_debug_snapshot!(TokenKind::lexer(code).collect::<Vec<_>>());
     }
 }

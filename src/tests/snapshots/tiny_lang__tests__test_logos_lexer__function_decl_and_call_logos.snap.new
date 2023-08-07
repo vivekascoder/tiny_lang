@@ -1,5 +1,6 @@
 ---
-source: src/lexer/logos_lexer.rs
+source: src/tests/test_logos_lexer.rs
+assertion_line: 34
 expression: "TokenKind::lexer(code).collect::<Vec<_>>()"
 ---
 [
