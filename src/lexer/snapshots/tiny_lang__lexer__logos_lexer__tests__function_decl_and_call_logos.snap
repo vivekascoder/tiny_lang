@@ -1,6 +1,6 @@
 ---
 source: src/lexer/logos_lexer.rs
-expression: "Token::lexer(code).collect::<Vec<_>>()"
+expression: "TokenKind::lexer(code).collect::<Vec<_>>()"
 ---
 [
     Ok(
@@ -13,7 +13,9 @@ expression: "Token::lexer(code).collect::<Vec<_>>()"
         Equal,
     ),
     Ok(
-        Number,
+        Number(
+            445,
+        ),
     ),
     Ok(
         SemiColon,
@@ -28,7 +30,9 @@ expression: "Token::lexer(code).collect::<Vec<_>>()"
         Equal,
     ),
     Ok(
-        Number,
+        Number(
+            45,
+        ),
     ),
     Ok(
         SemiColon,
@@ -43,7 +47,9 @@ expression: "Token::lexer(code).collect::<Vec<_>>()"
         Equal,
     ),
     Ok(
-        Boolean,
+        Bool(
+            false,
+        ),
     ),
     Ok(
         SemiColon,
@@ -58,7 +64,26 @@ expression: "Token::lexer(code).collect::<Vec<_>>()"
         Equal,
     ),
     Ok(
-        String,
+        Str(
+            "this is a \\\"string",
+        ),
+    ),
+    Ok(
+        SemiColon,
+    ),
+    Ok(
+        KeywordLet,
+    ),
+    Ok(
+        Ident,
+    ),
+    Ok(
+        Equal,
+    ),
+    Ok(
+        Char(
+            '\n',
+        ),
     ),
     Ok(
         SemiColon,
