@@ -2,7 +2,7 @@ use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use log::info;
 use std::fs;
-use tiny_lang::parser::Parser as AST;
+use tiny_lang::parser::parser::Parser as AST;
 use tiny_lang::repl::start_repl;
 use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::lexer::Lexer};
 

@@ -107,6 +107,20 @@ pub enum Literal {
     Char(char),
 }
 
+// enum TVec {
+//     LiteralVec<Literal>
+// }
+
+// WASM specific choices
+// pub enum Literal {
+//     I32(i32),
+//     I64(i64),
+//     F32(i32),
+//     F64(i64),
+//     Bool(bool),
+//     Char(char),
+// }
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ident(pub Rc<str>);
 

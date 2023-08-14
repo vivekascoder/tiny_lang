@@ -1,9 +1,3 @@
-# Tiny Lang
-
-A simple frontend for LLVM
-
-## Specification of the language.
-
 ## Expressions
 
 What are expressions?
@@ -98,9 +92,33 @@ Not going to implement a compiler that compile to some IR and a VM that evaluate
 
 [TODOs](./TODO.md)
 https://github.com/zesterer/ariadne/tree/main
-https://github.com/maciejhirsz/logos
+hhttps://github.com/APLanguage/aplang-rs/blob/new-debut/src/parsing/ast/declarations.rsttps://github.com/maciejhirsz/logos
+
+## Parts
+
+- Lexer
+- Parser
+- Interpreter
+- IR
+- VM
+- Codegen using LLVM/cranelift/binaryen
+
+## Possible routes to take moving forward.
+
+1. Writing a interpreter based VM.
+2. LLVM
+3. Cranelift
+4. ❌ Wasm
+   It'll require a lot of work as WASM has pretty simple data types, being able to map complex datatypes into WASM vec.
 
 ## Resources
 
 - https://github.com/jakubDoka/stackery
 - https://hackmd.io/@Kixiron/rJS7_OEbw
+- https://github.com/zesterer/tao/tree/master
+- https://github.com/DenialAdams/roland
+- https://crates.io/crates/wasm-encoder
+- https://github.com/Kixiron/rust-langdev
+- https://github.com/Rodrigodd/chasm-rs/blob/master/chasm-rs/src/compiler.rs#L663
+  This toy lang generates the WASM bytecode in the parser from scratch based on the parsed Node.
+  They use some sort of macro to generate bytecode on the fly.
