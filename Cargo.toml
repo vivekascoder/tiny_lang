@@ -22,7 +22,6 @@ llvm-sys-150 = { package = "llvm-sys", version = "150.1.0", features = [
 logos = "0.13.0"
 ariadne = "0.3.0"
 chumsky = "0.9.2"
-wasm-encoder = "0.31.1"
 
 
 [dev-dependencies]

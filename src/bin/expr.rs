@@ -122,4 +122,7 @@
 //     }
 // }
 
-fn main() {}
+fn main() {
+    // something
+    print!("something");
+}
