@@ -111,6 +111,13 @@ hhttps://github.com/APLanguage/aplang-rs/blob/new-debut/src/parsing/ast/declarat
 4. ❌ Wasm
    It'll require a lot of work as WASM has pretty simple data types, being able to map complex datatypes into WASM vec.
 
+## Tiny IR
+
+```
+block:
+
+```
+
 ## Resources
 
 - https://github.com/jakubDoka/stackery
