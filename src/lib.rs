@@ -8,3 +8,4 @@ pub mod parser;
 pub mod repl;
 pub mod scope;
 pub mod tests;
+pub mod tir;

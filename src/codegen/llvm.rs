@@ -1,16 +1,68 @@
-use super::CodeGen;
-use inkwell::{builder::Builder, context::Context, module::Module};
+use crate::ast::{Function, Program, Statement, Type};
+use inkwell::{
+    builder::Builder,
+    context::Context,
+    module::Module,
+    types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType},
+    values::FunctionValue,
+};
 
-struct LLVMCodeGen<'a, 'ctx> {
-    ctx: &'ctx Context,
-    builder: &'a Builder<'ctx>,
-    module: &'a Module<'ctx>,
+use super::CodeGen;
+
+struct LLVMCodeGen<'a> {
+    ctx: &'a Context,
+    program: Program,
+    builder: Builder<'a>,
+    module: Module<'a>,
 }
 
 /// https://llvm.org/docs/LangRef.html
-impl<'a, 'ctx> LLVMCodeGen<'a, 'ctx> {
-    fn generate(&self) -> Vec<u8> {
-        todo!()
+impl<'a> LLVMCodeGen<'a> {
+    pub fn new(ctx: &'a Context, program: Program, module_name: &str) -> Self {
+        Self {
+            ctx,
+            program,
+            builder: ctx.create_builder(),
+            module: ctx.create_module(module_name),
+        }
+    }
+
+    fn function_codegen(&self, f: &Function) -> FunctionValue<'_> {
+        let params = f
+            .params
+            .iter()
+            .map(|(_i, t)| match t {
+                Type::UnsignedInteger => BasicMetadataTypeEnum::IntType(self.ctx.i64_type()),
+                Type::SignedInteger => BasicMetadataTypeEnum::IntType(self.ctx.i64_type()),
+                Type::Bool => BasicMetadataTypeEnum::IntType(self.ctx.bool_type()),
+                Type::Char => BasicMetadataTypeEnum::IntType(self.ctx.i8_type()),
+            })
+            .collect::<Vec<_>>();
+        let fn_type = match &f.return_type {
+            Some(v) => match v {
+                Type::UnsignedInteger => self.ctx.i64_type().fn_type(&params, false),
+                Type::SignedInteger => self.ctx.i64_type().fn_type(&params, false),
+                Type::Bool => self.ctx.i64_type().fn_type(&params, false),
+                Type::Char => self.ctx.i64_type().fn_type(&params, false),
+            },
+            None => self.ctx.void_type().fn_type(&params, false),
+        };
+
+        self.module.add_function(&f.name, fn_type, None)
+    }
+}
+
+impl<'a> CodeGen for LLVMCodeGen<'a> {
+    fn generate(&self) -> String {
+        for stmt in &self.program {
+            match &stmt {
+                Statement::Function(f) => {
+                    self.function_codegen(f);
+                }
+                _ => panic!("not yet supported."),
+            }
+        }
+        self.module.print_to_string().to_string()
     }
 }
 
@@ -23,7 +75,29 @@ mod tests {
         AddressSpace,
     };
 
+    use crate::{
+        ast::Token,
+        lexer::{lexer::Lexer, logos_lexer::LexError},
+        parser::Parser,
+    };
+
     use super::*;
+
+    #[test]
+    fn test_codegen_function() {
+        let ctx = Context::create();
+        let module = "something";
+        let source = r#"
+        fun return_something(a: usize) => bool {
+            let something = false;
+            let another_var = 3535 + 35;
+            return something;
+        }
+        "#;
+        let llvm_codegen =
+            LLVMCodeGen::new(&ctx, Parser::new(module, source).parse().unwrap(), module);
+        println!("{:?}", llvm_codegen.generate());
+    }
 
     #[test]
     fn test_inkwell_codegen() {
@@ -92,4 +166,7 @@ mod tests {
         module.print_to_file("./build/something.ll").unwrap();
         println!("LLVM IR:\n{}", module.print_to_string().to_string());
     }
+
+    #[test]
+    fn test_cranelift_codegen() {}
 }

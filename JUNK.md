@@ -119,6 +119,7 @@ hhttps://github.com/APLanguage/aplang-rs/blob/new-debut/src/parsing/ast/declarat
 - https://github.com/DenialAdams/roland
 - https://crates.io/crates/wasm-encoder
 - https://github.com/Kixiron/rust-langdev
+- https://github.com/msakuta/inkwell-ruscal/blob/master/src/parser.rs
 - https://github.com/Rodrigodd/chasm-rs/blob/master/chasm-rs/src/compiler.rs#L663
   This toy lang generates the WASM bytecode in the parser from scratch based on the parsed Node.
   They use some sort of macro to generate bytecode on the fly.

@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{parser::parser::Parser, tests::setup};
+use crate::{parser::Parser, tests::setup};
 
 #[test]
 fn test_let_statement_parsing() {

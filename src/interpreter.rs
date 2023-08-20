@@ -1,4 +1,4 @@
-use crate::parser::parser::Parser;
+use crate::parser::Parser;
 use crate::scope::ScopeStack;
 use crate::{ast::*, native::Native};
 use anyhow::{bail, Result};

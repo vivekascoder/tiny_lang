@@ -3,7 +3,7 @@ use anyhow::bail;
 use crate::ast::Token;
 use crate::interpreter::Interpreter;
 use crate::lexer::lexer::Lexer;
-use crate::parser::parser::Parser as AST;
+use crate::parser::Parser as AST;
 use crate::scope::ScopeStack;
 use std::io;
 use std::io::Write;

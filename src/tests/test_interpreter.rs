@@ -2,7 +2,7 @@ use log::info;
 
 use crate::ast::*;
 use crate::tests::setup;
-use crate::{interpreter::Interpreter, parser::parser::Parser};
+use crate::{interpreter::Interpreter, parser::Parser};
 
 #[test]
 
