@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::ast::{Program, Type};
+use crate::ast::{Literal, Program, Type};
 
 #[derive(Debug, Clone)]
 enum Cond {
@@ -13,29 +13,52 @@ enum Cond {
 }
 
 #[derive(Debug, Clone)]
+enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+}
+
+#[derive(Debug, Clone)]
 enum Instr {
-    // # memory access
     //%p = load i32, i32* %v
     Load {
         name: Rc<str>,
         ty_: Type,
         reg_to_load: Rc<str>,
     },
-    Store(Rc<str>),        // store i32 34, i32* %v
-    Alloca(Rc<str>, Type), // %v = alloca i32
 
-    // binary op.
-    Add(i64, i64),
-    Sub(i64, i64),
-    Mul(i64, i64),
-    Div(i64, i64),
-    Rem(i64, i64),
+    // store i32 34, i32* %v
+    Store {
+        ty_: Type,
+        val: Literal,
+        store_at: Rc<str>,
+    },
+
+    // %v = alloca i32
+    Alloca {
+        name: Rc<str>,
+        ty_: Type,
+    },
+
+    BinaryInstr {
+        op: BinOp,
+        ty_: Type,
+        lr: (Literal, Literal),
+    },
 
     // terminator.
     Ret(i64),
 
-    // comparison
-    Icmp(Cond, i64, i64),
+    // comparison: %c = icmp sgt i32 %a, %b
+    Icmp {
+        name: Rc<str>,
+        cond: Cond,
+        ty_: Type,
+        lr: (Literal, Literal),
+    },
 }
 
 struct Block {

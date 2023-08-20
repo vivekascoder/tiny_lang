@@ -158,7 +158,6 @@ define i32 @something(i32 %a, i32 %b) {
 ### Where should we create blocks?
 
 - If-else conditions.
--
 
 ## WASM
 
@@ -180,6 +179,33 @@ fn sum(a: u64, b: u64) -> u64 {
 fn main() {
     let s = sum(1, 2);
     println!("{}", s);
+}
+```
+
+## TinyLang new syntax to match llvm ir more closely.
+
+```
+// constants
+const a: i32 = 10;
+
+
+// functions
+fun larger(a: i32, b: i32) => i32 {
+    if (a > b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+// main entry point of the program
+fun main() => i32 {
+    let a: i32 = 10;
+    let b: i32 = 20;
+    let c: i32 = larger(a, b);
+    println(c);
+
+    return 0;
 }
 ```
 

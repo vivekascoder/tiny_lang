@@ -26,7 +26,7 @@
 
 ### Migrating lexer and parser.
 
-- [ ] Write lexer in logos.
+- [x] Write lexer in logos.
 - [ ] Write parser in chumsky.
 
 ### Compiler.
