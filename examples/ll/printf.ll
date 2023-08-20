@@ -3,6 +3,7 @@ declare i32 @printf(i8*, ...) #1
 
 
 define i32 @main() {
+    main_block:
     %v = alloca i32
     store i32 34, i32* %v
     %p = load i32, i32* %v
@@ -10,3 +11,5 @@ define i32 @main() {
 
     ret i32 0
 }
+
+; compile with: `lli -opaque-pointers ./examples/ll/basic.ll`

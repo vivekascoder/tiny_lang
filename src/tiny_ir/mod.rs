@@ -14,9 +14,15 @@ enum Cond {
 
 #[derive(Debug, Clone)]
 enum Instr {
-    // memory access
-    Load(Rc<str>),
-    Store(Rc<str>),
+    // # memory access
+    //%p = load i32, i32* %v
+    Load {
+        name: Rc<str>,
+        ty_: Type,
+        reg_to_load: Rc<str>,
+    },
+    Store(Rc<str>),        // store i32 34, i32* %v
+    Alloca(Rc<str>, Type), // %v = alloca i32
 
     // binary op.
     Add(i64, i64),

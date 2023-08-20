@@ -1,4 +1,4 @@
-use crate::ast::{Function, Program, Statement, Type};
+use crate::ast::{Expr, Function, Literal, Program, Statement, Type};
 use inkwell::{
     builder::Builder,
     context::Context,
@@ -27,6 +27,18 @@ impl<'a> LLVMCodeGen<'a> {
         }
     }
 
+    fn codegen_for_expr_statement(&self, expr: Expr) {
+        // match &expr {
+        // Expr::Literal(l) => match l {
+        //     // Literal::
+        // },
+        // Expr::Infix(i, l, r) => {
+
+        // }
+        // _ => unimplemented!(),
+        // }
+    }
+
     fn function_codegen(&self, f: &Function) -> FunctionValue<'_> {
         let params = f
             .params
@@ -43,7 +55,7 @@ impl<'a> LLVMCodeGen<'a> {
                 Type::UnsignedInteger => self.ctx.i64_type().fn_type(&params, false),
                 Type::SignedInteger => self.ctx.i64_type().fn_type(&params, false),
                 Type::Bool => self.ctx.i64_type().fn_type(&params, false),
-                Type::Char => self.ctx.i64_type().fn_type(&params, false),
+                Type::Char => self.ctx.i8_type().fn_type(&params, false),
             },
             None => self.ctx.void_type().fn_type(&params, false),
         };
@@ -82,6 +94,18 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn test_expr_codegen() {
+        let ctx = Context::create();
+        let module = "something";
+        let source = "23 + 34 - 5;";
+        let program = Parser::new(module, source).parse().unwrap();
+        println!("program: {:?}", &program);
+
+        let llvm_codegen = LLVMCodeGen::new(&ctx, program, module);
+        println!("{:?}", llvm_codegen.generate());
+    }
 
     #[test]
     fn test_codegen_function() {

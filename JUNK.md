@@ -113,13 +113,83 @@ hhttps://github.com/APLanguage/aplang-rs/blob/new-debut/src/parsing/ast/declarat
 
 ## Tiny IR
 
-```
-block:
+### IR for let statement.
 
+#### simple function
+
+```
+fun something(a: isize, b: isize) => isize {
+    let d = 10
+    let c = a + b + d;
+    return c;
+}
+```
+
+```ll
+define i32 @something(i32 %a, i32 %b) {
+    %c = add i32 %a, %b
+    ret i32 %c
+}
+```
+
+#### simple if-else statements.
+
+```
+fun something(a: isize, b: isize) => isize {
+    if (a > b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+```
+
+```ll
+define i32 @something(i32 %a, i32 %b) {
+    if_1:
+    %c = icmp sgt i32 %a, %b
+    br i1 %c, label %if_1, label %else_1
+
+    else_1:
+    ret i32 %b
+}
+```
+
+### Where should we create blocks?
+
+- If-else conditions.
+-
+
+## WASM
+
+### Functions
+
+```
+
+(func (param i32) (param i32) (result i64) <function body>)
+
+```
+
+## Simple function to emit using codegen
+
+```rs
+fn sum(a: u64, b: u64) -> u64 {
+    return a + b;
+}
+
+fn main() {
+    let s = sum(1, 2);
+    println!("{}", s);
+}
 ```
 
 ## Resources
 
+- https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/docs/ir.md
+- https://llvm.org/docs/LangRef.html
+- https://cs.lmu.edu/~ray/notes/ir/
+- https://radu-matei.com/blog/practical-guide-to-wasm-memory/
+- https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/
 - https://github.com/jakubDoka/stackery
 - https://hackmd.io/@Kixiron/rJS7_OEbw
 - https://github.com/zesterer/tao/tree/master
@@ -128,5 +198,4 @@ block:
 - https://github.com/Kixiron/rust-langdev
 - https://github.com/msakuta/inkwell-ruscal/blob/master/src/parser.rs
 - https://github.com/Rodrigodd/chasm-rs/blob/master/chasm-rs/src/compiler.rs#L663
-  This toy lang generates the WASM bytecode in the parser from scratch based on the parsed Node.
-  They use some sort of macro to generate bytecode on the fly.
+- https://github.com/mental32/monty/blob/master/montyc_codegen/src/structbuf.rs
