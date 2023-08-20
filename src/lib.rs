@@ -1,7 +1,11 @@
 pub mod ast;
+pub mod code;
+pub mod codegen;
 pub mod interpreter;
 pub mod lexer;
 pub mod native;
 pub mod parser;
+pub mod repl;
 pub mod scope;
 pub mod tests;
+pub mod tir;

@@ -23,6 +23,20 @@ impl Interpreter {
         }
     }
 
+    pub fn get_stack(&self) -> ScopeStack {
+        self.env.clone()
+    }
+
+    pub fn from_scope(module: &str, source: &str, stack: ScopeStack) -> Self {
+        Self {
+            parser: Parser::new(module, source),
+            env: stack,
+            native: Native::new(),
+        }
+    }
+
+    // pub fn new_repl(source: &str, scope_stack: )
+
     pub fn module(&self) -> String {
         self.parser.module()
     }

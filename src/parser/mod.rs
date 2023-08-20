@@ -1,5 +1,7 @@
+pub mod chumsky_parser;
+
 use crate::ast::*;
-use crate::lexer::Lexer;
+use crate::lexer::lexer::Lexer;
 use anyhow::{anyhow, bail, Result};
 use log::info;
 use std::rc::Rc;
@@ -86,7 +88,7 @@ impl Parser {
 
         // next token should be assign.
         if !self.expect_next_token(&Rc::new(TokenType::Equal))? {
-            panic!("next token is not assign/equal.")
+            bail!("next token is not assign/equal.")
         }
 
         // next token should be expression.
@@ -404,6 +406,60 @@ impl Parser {
         Self::token_to_precedence(&self.next_token)
     }
 
+    fn parse_fn_params(&mut self) -> Result<Vec<Expr>> {
+        let mut params: Vec<Expr> = vec![];
+        self.bump()?;
+        info!(
+            "self.current before bparsing param: {:?}",
+            self.current_token
+        );
+
+        while !self.current_token_is(&Rc::new(TokenType::RParen)) {
+            if self.next_token_is(&Rc::new(TokenType::RParen)) {
+                self.bump()?;
+                break;
+            }
+            self.bump()?;
+            let param = self.parse_expression(Precedence::Lowest)?;
+            info!("param: {:?}", param);
+            params.push(param);
+
+            info!("{:?}, {:?}", self.current_token, self.next_token);
+            if !(self.next_token_is(&Rc::new(TokenType::Comma))
+                || self.next_token_is(&Rc::new(TokenType::RParen)))
+            {
+                bail!("sep , while param func");
+            }
+            self.bump()?;
+            info!(" -->{:?}, {:?}", self.current_token, self.next_token);
+        }
+
+        Ok(params)
+    }
+
+    fn parse_infix_operator(&mut self) -> Result<Infix> {
+        Ok(match self.current_token.as_ref() {
+            TokenType::Plus => Infix::Plus,
+            TokenType::Minus => Infix::Minus,
+            TokenType::Divide => Infix::Divide,
+            TokenType::Multiply => Infix::Multiply,
+            TokenType::DoubleEqual => Infix::DoubleEqual,
+            TokenType::NotEqual => Infix::NotEqual,
+            TokenType::LessThan => Infix::LessThan,
+            TokenType::LessThanEqual => Infix::LessThanEqual,
+            TokenType::GreaterThan => Infix::GreaterThan,
+            TokenType::GreaterThanEqual => Infix::GreaterThanEqual,
+            TokenType::LeftShift => Infix::LeftShift,
+            TokenType::RightShift => Infix::RightShift,
+            TokenType::Ampersand => Infix::BitwiseAnd,
+            TokenType::Carrot => Infix::BitwiseXor,
+            TokenType::Pipe => Infix::BitwiseOr,
+            _ => {
+                bail!("{:?} is not a valid infix operator.", &self.next_token);
+            }
+        })
+    }
+
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
         // Parse the left
         let mut left = match self.current_token.as_ref() {
@@ -497,27 +553,8 @@ impl Parser {
                 | TokenType::Carrot
                 | TokenType::Pipe => {
                     self.bump()?;
+                    let infix = self.parse_infix_operator()?;
 
-                    let infix = match self.current_token.as_ref() {
-                        TokenType::Plus => Infix::Plus,
-                        TokenType::Minus => Infix::Minus,
-                        TokenType::Divide => Infix::Divide,
-                        TokenType::Multiply => Infix::Multiply,
-                        TokenType::DoubleEqual => Infix::DoubleEqual,
-                        TokenType::NotEqual => Infix::NotEqual,
-                        TokenType::LessThan => Infix::LessThan,
-                        TokenType::LessThanEqual => Infix::LessThanEqual,
-                        TokenType::GreaterThan => Infix::GreaterThan,
-                        TokenType::GreaterThanEqual => Infix::GreaterThanEqual,
-                        TokenType::LeftShift => Infix::LeftShift,
-                        TokenType::RightShift => Infix::RightShift,
-                        TokenType::Ampersand => Infix::BitwiseAnd,
-                        TokenType::Carrot => Infix::BitwiseXor,
-                        TokenType::Pipe => Infix::BitwiseOr,
-                        _ => {
-                            bail!("{:?} is not a valid infix operator.", &self.next_token);
-                        }
-                    };
                     info!("Infix: {:?}", infix);
 
                     let precedence = self.current_token_precedence();
@@ -531,36 +568,7 @@ impl Parser {
                     }
                 }
                 TokenType::LParen => {
-                    let mut params: Vec<Expr> = vec![];
-                    self.bump()?;
-                    info!(
-                        "self.current before bparsing param: {:?}",
-                        self.current_token
-                    );
-
-                    while !self.current_token_is(&Rc::new(TokenType::RParen)) {
-                        if self.next_token_is(&Rc::new(TokenType::RParen)) {
-                            self.bump()?;
-                            break;
-                        }
-                        self.bump()?;
-                        let param = self.parse_expression(Precedence::Lowest)?;
-                        info!("param: {:?}", param);
-                        params.push(param);
-
-                        info!("{:?}, {:?}", self.current_token, self.next_token);
-                        if !(self.next_token_is(&Rc::new(TokenType::Comma))
-                            || self.next_token_is(&Rc::new(TokenType::RParen)))
-                        {
-                            bail!("sep , while param func");
-                        }
-                        self.bump()?;
-                        info!(" -->{:?}, {:?}", self.current_token, self.next_token);
-                    }
-
-                    // self.bump()?;
-                    info!(" -->{:?}, {:?}", self.current_token, self.next_token);
-                    // self.bump()?;
+                    let params = self.parse_fn_params()?;
 
                     if let Expr::Ident(i) = left {
                         left = Expr::Call(FunctionCall {

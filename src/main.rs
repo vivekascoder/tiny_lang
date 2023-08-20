@@ -3,7 +3,8 @@ use clap::{Parser, Subcommand};
 use log::info;
 use std::fs;
 use tiny_lang::parser::Parser as AST;
-use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::Lexer};
+use tiny_lang::repl::start_repl;
+use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::lexer::Lexer};
 
 #[derive(Parser)]
 #[command(
@@ -25,6 +26,12 @@ enum Commands {
 
     /// Prints AST generated for given tiny_lang program.
     Ast { file: Option<String> },
+
+    /// Playground to interact with tiny lang.
+    Repl {
+        #[arg(short, long)]
+        with: Option<String>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -74,6 +81,9 @@ fn main() -> Result<()> {
 
             // TODO: Also return json? but should we as it's another dependency?
             println!("{:#?}", AST::new(&file_name, &program).parse()?);
+        }
+        Commands::Repl { with } => {
+            start_repl(with)?;
         }
     }
 

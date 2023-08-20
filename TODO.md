@@ -23,3 +23,15 @@
 - [ ] WASM module to compile whole rust interpreter into WASM.
 - [ ] Frontend work to support execution>
 - ... more to come.
+
+### Migrating lexer and parser.
+
+- [ ] Write lexer in logos.
+- [ ] Write parser in chumsky.
+
+### Compiler.
+
+> The compiler will compile to some IR and then we'll have an interpreter to interpret that IR. We might also use cranelift or LLVM to compile the IR down to machine code.
+
+- [ ] Design the IR.
+- [ ] Transpile to IR

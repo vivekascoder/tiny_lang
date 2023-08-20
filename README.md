@@ -16,6 +16,12 @@ cargo install --path .
 tiny_lang interpret ./examples/main.tiny
 ```
 
+## Repl
+
+```bash
+tiny_lang repl --with (ast/lex/interpret)
+```
+
 ## Examples
 
 ```

@@ -2,7 +2,7 @@
 name = "tiny_lang"
 version = "0.1.0"
 edition = "2021"
-about="Tiny Lang is a type safe general purpose programming language"
+about = "Tiny Lang is a type safe general purpose programming language"
 authors = ["Vivek K. [vivekascoder@gmail.com]"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,6 +13,17 @@ regex = "1.8.4"
 env_logger = "0.10.0"
 log = "0.4.19"
 clap = { version = "4.3.11", features = ["derive"] }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = [
+    "llvm15-0",
+] }
+llvm-sys-150 = { package = "llvm-sys", version = "150.1.0", features = [
+    "prefer-dynamic",
+] }
+logos = "0.13.0"
+ariadne = "0.3.0"
+chumsky = "0.9.2"
+cranelift-frontend = "0.98.1"
+
 
 [dev-dependencies]
 insta = { version = "1.30.0", features = ["yaml"] }
@@ -22,4 +33,3 @@ opt-level = 3
 
 [profile.dev.package.similar]
 opt-level = 3
-

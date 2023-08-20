@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 
 pub type Scope = HashMap<Rc<str>, MemoryObject>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScopeStack {
     stack: Vec<Scope>,
 }
@@ -30,11 +30,11 @@ impl ScopeStack {
     }
 
     pub fn exists(&self, key: &str) -> bool {
-        if let Some(_) = self.stack.iter().rev().find_map(|s| Some(s.get(key))) {
-            return true;
-        } else {
-            return false;
-        }
+        self.stack
+            .iter()
+            .rev()
+            .find_map(|s| Some(s.get(key)))
+            .is_some()
     }
 
     pub fn get_ref(&self, key: &str) -> Option<&MemoryObject> {

@@ -1,9 +1,3 @@
-# Tiny Lang
-
-A simple frontend for LLVM
-
-## Specification of the language.
-
 ## Expressions
 
 What are expressions?
@@ -86,79 +80,46 @@ How tihe recursive `ExprResult::Return<Box<ExprResult>>` should be handled?
 For syntax highlighting
 https://github.com/damirka/move-syntax/blob/main/syntaxes/move.tmLanguage.json
 
-```
-printf("Hello World");
-```
+Parse isize or usize based on type.
 
-```ts
-import "module_name";
+### Compiler
 
-const SOME_VAL: i64 = 123;
+1. If let is `usize` and val is `isize`
 
-let var: f64 = 343.4;
-let var2: f64 = var + 3.45;
-
-struct Something {
-    val: i32
-}
-
-fun sum3(a: i32, b: i32, c: i32) => i32 {
-    return a + b + c;
-}
-
-let result: i32 = sum3(1, 2, 3);
-
-fun main(): void {
-    printf("Main function");
-}
-
-```
-
-## Debug
-
-```rs
- [
-    Let(
-        Ident(
-            "something",
-        ),
-        Infix(
-            Plus,
-
-            Literal(
-                SignedInteger(
-                    454,
-                ),
-            ),
-
-            Infix(
-                Multiply,
-                Infix(
-                    Multiply,
-                    Literal(
-                        SignedInteger(
-                            3,
-                        ),
-                    ),
-                    Literal(
-                        SignedInteger(
-                            4,
-                        ),
-                    ),
-                ),
-                Literal(
-                    SignedInteger(
-                        35,
-                    ),
-                ),
-            ),
-        ),
-    ),
-],
-```
+Not going to implement a compiler that compile to some IR and a VM that evaluates this IR until I can some interesting reference impls.
 
 ## Things that are remaining.
 
 [TODOs](./TODO.md)
 https://github.com/zesterer/ariadne/tree/main
-https://github.com/maciejhirsz/logos
+hhttps://github.com/APLanguage/aplang-rs/blob/new-debut/src/parsing/ast/declarations.rsttps://github.com/maciejhirsz/logos
+
+## Parts
+
+- Lexer
+- Parser
+- Interpreter
+- IR
+- VM
+- Codegen using LLVM/cranelift/binaryen
+
+## Possible routes to take moving forward.
+
+1. Writing a interpreter based VM.
+2. LLVM
+3. Cranelift
+4. ❌ Wasm
+   It'll require a lot of work as WASM has pretty simple data types, being able to map complex datatypes into WASM vec.
+
+## Resources
+
+- https://github.com/jakubDoka/stackery
+- https://hackmd.io/@Kixiron/rJS7_OEbw
+- https://github.com/zesterer/tao/tree/master
+- https://github.com/DenialAdams/roland
+- https://crates.io/crates/wasm-encoder
+- https://github.com/Kixiron/rust-langdev
+- https://github.com/msakuta/inkwell-ruscal/blob/master/src/parser.rs
+- https://github.com/Rodrigodd/chasm-rs/blob/master/chasm-rs/src/compiler.rs#L663
+  This toy lang generates the WASM bytecode in the parser from scratch based on the parsed Node.
+  They use some sort of macro to generate bytecode on the fly.
