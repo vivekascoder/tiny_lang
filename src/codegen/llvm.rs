@@ -1,22 +1,25 @@
-use std::{borrow::BorrowMut, rc::Rc};
+use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::ast::{Expr, Function, Infix, Literal, Program, Statement, Type};
+use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
-    types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType},
-    values::{BasicValue, BasicValueEnum, FunctionValue},
+    types::BasicMetadataTypeEnum,
+    values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
 };
+use log::info;
 
 use super::CodeGen;
 
-struct LLVMCodeGen<'a> {
+#[derive(Debug)]
+struct LLVMCodeGen<'a, 'f> {
     ctx: &'a Context,
     program: Program,
     builder: Builder<'a>,
     module: Module<'a>,
-    vars: Vec<(Rc<str>, BasicValueEnum<'a>)>,
+    scopes: Rc<RefCell<Vec<HashMap<Rc<str>, (PointerValue<'a>, Type)>>>>,
+    fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'a>, &'f Function)>>>,
 }
 
 // impl<'a> Into<AnyTypeEnum<'a>> for Type {
@@ -31,14 +34,15 @@ struct LLVMCodeGen<'a> {
 /// https://llvm.org/docs/LangRef.html
 ///
 /// ## How to store the let statements name, types of
-impl<'a> LLVMCodeGen<'a> {
+impl<'a, 'f> LLVMCodeGen<'a, 'f> {
     pub fn new(ctx: &'a Context, program: Program, module_name: &str) -> Self {
         Self {
             ctx,
             program,
             builder: ctx.create_builder(),
             module: ctx.create_module(module_name),
-            vars: vec![],
+            scopes: Rc::new(RefCell::new(vec![])),
+            fns: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 
@@ -51,7 +55,7 @@ impl<'a> LLVMCodeGen<'a> {
     // -> %some = alloca i32
     // -> sum
     // this function should return the name of the register that will have the value stored after doing all op.
-    fn expr_codegen(&self, expr: &Expr) -> BasicValueEnum {
+    fn compile_expr(&self, expr: &Expr) -> BasicValueEnum {
         match &expr {
             Expr::Literal(l) => match l {
                 Literal::UnsignedInteger(v) => self
@@ -71,34 +75,46 @@ impl<'a> LLVMCodeGen<'a> {
                     .as_basic_value_enum(),
             },
             Expr::Ident(i) => {
-                // maybe load into a register,
-                // than return.
-                // TODO: how can I make sure the type of the pointee.
-                // this identifier could be function param as well.
-                // self.ctx.i64_type().
-                todo!()
+                // ## What to do?
+                // - get the pointer from the scope,
+                // - do a load and store the pointer to this with the ler.
+                if let Some((ptr, ty_)) = self
+                    .scopes
+                    .as_ref()
+                    .borrow()
+                    .iter()
+                    .rev()
+                    .find_map(|s| s.get(&i.0))
+                {
+                    match ty_ {
+                        Type::Bool => self.builder.build_load(self.ctx.bool_type(), *ptr, ""),
+                        Type::Char => self.builder.build_load(self.ctx.i8_type(), *ptr, ""),
+                        Type::UnsignedInteger => {
+                            self.builder.build_load(self.ctx.i64_type(), *ptr, "")
+                        }
+                        Type::SignedInteger => {
+                            self.builder.build_load(self.ctx.i64_type(), *ptr, "")
+                        }
+                    }
+                } else {
+                    panic!("ident doesn't exists.")
+                }
             }
 
             Expr::Infix(i, l, r) => {
-                let l_val = self.expr_codegen(l);
-                let r_val = self.expr_codegen(r);
+                let l_val = self.compile_expr(l);
+                let r_val = self.compile_expr(r);
+                info!("lval, rval: {:?}, {:?}", &l_val, &r_val);
                 match (l_val, r_val) {
                     (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => match i {
-                        Infix::Plus => self
-                            .builder
-                            .build_int_add(l, r, "something")
-                            .as_basic_value_enum(),
-                        Infix::Minus => self
-                            .builder
-                            .build_int_sub(l, r, "something")
-                            .as_basic_value_enum(),
-                        Infix::Multiply => self
-                            .builder
-                            .build_int_mul(l, r, "something")
-                            .as_basic_value_enum(),
+                        Infix::Plus => self.builder.build_int_add(l, r, "").as_basic_value_enum(),
+                        Infix::Minus => self.builder.build_int_sub(l, r, "").as_basic_value_enum(),
+                        Infix::Multiply => {
+                            self.builder.build_int_mul(l, r, "").as_basic_value_enum()
+                        }
                         Infix::Divide => self
                             .builder
-                            .build_int_unsigned_div(l, r, "something")
+                            .build_int_unsigned_div(l, r, "")
                             .as_basic_value_enum(),
                         _ => unimplemented!("plz implement other infix for int values."),
                     },
@@ -109,7 +125,8 @@ impl<'a> LLVMCodeGen<'a> {
         }
     }
 
-    fn function_codegen(&self, f: &Function) -> FunctionValue<'_> {
+    fn compile_fn(&self, f: &'f Function) -> FunctionValue<'a> {
+        self.scopes.as_ref().borrow_mut().push(HashMap::new());
         let params = f
             .params
             .iter()
@@ -131,6 +148,10 @@ impl<'a> LLVMCodeGen<'a> {
         };
 
         let fn_val = self.module.add_function(&f.name, fn_type, None);
+        self.fns
+            .as_ref()
+            .borrow_mut()
+            .insert(Rc::clone(&f.name), (fn_val, f));
 
         // Append a main function block
         let main_block_name = format!("main_{}_block", f.name);
@@ -140,38 +161,47 @@ impl<'a> LLVMCodeGen<'a> {
         self.builder.position_at_end(main_block);
 
         for stmt in &f.body {
-            match stmt {
-                Statement::Let(i, ty_, expr) => {
-                    // allocate register with ty and expr
-                    let ptr = match ty_.clone().unwrap() {
-                        Type::UnsignedInteger => {
-                            self.builder.build_alloca(self.ctx.i64_type(), &i.0)
-                        }
-                        Type::SignedInteger => self.builder.build_alloca(self.ctx.i64_type(), &i.0),
-                        Type::Bool => self.builder.build_alloca(self.ctx.bool_type(), &i.0),
-                        Type::Char => self.builder.build_alloca(self.ctx.i8_type(), &i.0),
-                    };
-                    let val = self.expr_codegen(expr);
-                    self.builder.build_store(ptr, val);
-                }
-                Statement::Return(expr) => {}
-                _ => unimplemented!(),
-            };
+            self.compile_statemt(stmt);
         }
 
-        todo!()
+        fn_val
     }
-}
 
-impl<'a> CodeGen for LLVMCodeGen<'a> {
-    fn generate(&self) -> String {
-        for stmt in &self.program {
-            match &stmt {
-                Statement::Function(f) => {
-                    self.function_codegen(f);
-                }
-                _ => panic!("not yet supported."),
+    fn compile_let(&self, i: &Ident, ty_: &Option<Type>, expr: &Expr) {
+        // allocate register with ty and expr
+        let ptr = match ty_.clone().unwrap() {
+            Type::UnsignedInteger => self.builder.build_alloca(self.ctx.i64_type(), ""),
+            Type::SignedInteger => self.builder.build_alloca(self.ctx.i64_type(), ""),
+            Type::Bool => self.builder.build_alloca(self.ctx.bool_type(), ""),
+            Type::Char => self.builder.build_alloca(self.ctx.i8_type(), ""),
+        };
+        let val = self.compile_expr(expr);
+        self.builder.build_store(ptr, val);
+
+        let mut scopes = self.scopes.as_ref().borrow_mut();
+        let c_scope = scopes.last_mut().unwrap();
+        if c_scope.contains_key(&i.0) {
+            // TODO: Move to result & bail
+            panic!("already declared in this scope.")
+        }
+        // TODO: remove unwrap
+
+        c_scope.insert(Rc::clone(&i.0), (ptr, ty_.clone().unwrap()));
+    }
+
+    fn compile_statemt(&self, stmt: &'f Statement) {
+        match &stmt {
+            Statement::Function(f) => {
+                let _ = self.compile_fn(f);
             }
+            Statement::Let(i, ty_, expr) => self.compile_let(i, ty_, expr),
+            _ => panic!("not yet supported."),
+        }
+    }
+
+    fn generate(&'f self) -> String {
+        for stmt in &self.program {
+            self.compile_statemt(stmt);
         }
         self.module.print_to_string().to_string()
     }
@@ -179,6 +209,7 @@ impl<'a> CodeGen for LLVMCodeGen<'a> {
 
 #[cfg(test)]
 mod tests {
+    use env_logger::init;
     use inkwell::{
         context,
         passes::PassManagerSubType,
@@ -196,7 +227,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_expr_codegen() {
+    fn test_expr_codegen<'a>() {
         let ctx = Context::create();
         let module = "something";
         let source = "23 + 34 - 5;";
@@ -204,23 +235,27 @@ mod tests {
         println!("program: {:?}", &program);
 
         let llvm_codegen = LLVMCodeGen::new(&ctx, program, module);
-        println!("{:?}", llvm_codegen.generate());
+        let s = llvm_codegen.generate();
+        println!("{:?}", s);
     }
 
     #[test]
-    fn test_codegen_function() {
+    fn test_codegen_function<'a>() {
+        init();
         let ctx = Context::create();
         let module = "something";
         let source = r#"
         fun return_something(a: usize) => bool {
-            let something = false;
-            let another_var = 3535 + 35;
-            return something;
+            let something: bool = false;
+            let another_var: usize = 3535 + 35;
+            let a: usize = another_var + 353;
+            // return something;
         }
         "#;
-        let llvm_codegen =
-            LLVMCodeGen::new(&ctx, Parser::new(module, source).parse().unwrap(), module);
-        println!("{:?}", llvm_codegen.generate());
+        let ast = Parser::new(module, source).parse().unwrap();
+        println!("{:?}", &ast);
+        let llvm_codegen = LLVMCodeGen::new(&ctx, ast, module);
+        println!("{}", llvm_codegen.generate());
     }
 
     #[test]
@@ -238,17 +273,15 @@ mod tests {
         let main_block = ctx.append_basic_block(fn_val, "main_block");
         builder.position_at_end(main_block);
         // let l_val = ctx.i64_type().const_int(345, true);
-        let l_val = fn_val.get_nth_param(0).unwrap().into_int_value();
+        // let l_val = fn_val.get_nth_param(0).unwrap().into_int_value();
 
         // parse: let v: i64 = 234 + (23 - 345);
-        let ptr = builder.build_alloca(ctx.i64_type(), "t45");
-        // let instr_val = builder.build_store(ptr, ctx.i64_type().const_int(345, false));
-        // let l_val = builder
-        //     .build_load(ctx.i64_type(), ptr, "val_loaded")
-        //     .into_int_value();
+        let ptr = builder.build_alloca(ctx.i64_type(), "");
+        let instr_val = builder.build_store(ptr, ctx.i64_type().const_int(345, false));
+        let l_val = builder.build_load(ctx.i64_type(), ptr, "").into_int_value();
 
-        let temp1 = builder.build_int_sub(ctx.i64_type().const_int(23, true), l_val, "temp1");
-        let v = builder.build_int_add(ctx.i64_type().const_int(234, true), temp1, "v");
+        let temp1 = builder.build_int_sub(ctx.i64_type().const_int(23, true), l_val, "");
+        let v = builder.build_int_add(ctx.i64_type().const_int(234, true), temp1, "");
         builder.build_return(Some(&v));
         println!("{}", module.print_to_string().to_string());
     }

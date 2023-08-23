@@ -148,7 +148,7 @@ pub struct Condition {
     pub else_body: Option<BlockStatement>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Copy)]
 pub enum Type {
     UnsignedInteger,
     SignedInteger,

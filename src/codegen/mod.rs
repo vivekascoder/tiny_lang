@@ -1,5 +1,5 @@
 pub mod llvm;
 
-pub trait CodeGen {
+pub trait CodeGen<'a> {
     fn generate(&self) -> String;
 }
