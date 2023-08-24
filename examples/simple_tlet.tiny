@@ -2,5 +2,5 @@ fun return_something(a: usize) => bool {
     let something: bool = false;
     let another_var: usize = 3535 + 35;
     let a: usize = another_var + 353;
-    // return something;
+    return a;
 }
