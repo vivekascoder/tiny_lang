@@ -2,6 +2,7 @@ use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use log::info;
 use std::fs;
+use tiny_lang::codegen;
 use tiny_lang::parser::Parser as AST;
 use tiny_lang::repl::start_repl;
 use tiny_lang::{ast::Token, interpreter::Interpreter, lexer::lexer::Lexer};
@@ -19,18 +20,27 @@ struct TinyLang {
 #[derive(Subcommand)]
 enum Commands {
     /// Interpret a tiny_lang program, by default it looks for `main.tiny` file.
-    Interpret { file: Option<String> },
+    Interpret {
+        file: Option<String>,
+    },
 
     /// Generate lexer for the given tiny_lang program.
-    Lex { file: Option<String> },
+    Lex {
+        file: Option<String>,
+    },
 
     /// Prints AST generated for given tiny_lang program.
-    Ast { file: Option<String> },
+    Ast {
+        file: Option<String>,
+    },
 
     /// Playground to interact with tiny lang.
     Repl {
         #[arg(short, long)]
         with: Option<String>,
+    },
+    Compile {
+        file: Option<String>,
     },
 }
 
@@ -54,6 +64,16 @@ fn main() -> Result<()> {
                 // TODO: track last token position
                 eprintln!("{}:{}:{} {}", i.module(), i.get_row(), i.get_col(), e);
             }
+        }
+
+        Commands::Compile { file } => {
+            let file_name = file.clone().unwrap_or("./main.tiny".to_string());
+            if let Err(_) = fs::metadata(&file_name) {
+                bail!("Filename {:?} doesn't exists.", &file_name);
+            }
+
+            let program = AST::new(&file_name, fs::read_to_string(&file_name)?.as_str()).parse()?;
+            codegen::llvm::generate(&file_name, program)?;
         }
         Commands::Lex { file } => {
             let file_name = file.clone().unwrap_or("./main.tiny".to_string());

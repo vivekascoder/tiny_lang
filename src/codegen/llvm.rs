@@ -1,11 +1,12 @@
-use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
+use anyhow::bail;
 use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
-    types::BasicMetadataTypeEnum,
+    types::{AnyTypeEnum, BasicMetadataTypeEnum},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
 };
 use log::info;
@@ -25,7 +26,7 @@ struct LLVMCodeGen<'a, 'f> {
 // impl<'a> Into<AnyTypeEnum<'a>> for Type {
 //     fn into(self) -> AnyTypeEnum<'a> {
 //         match self {
-//             Type::UnsignedInteger => AnyTypeEnum::IntType()
+//             Type::UnsignedInteger => AnyTypeEnum::IntType(In),
 //         }
 //     }
 // }
@@ -168,7 +169,6 @@ impl<'a, 'f> LLVMCodeGen<'a, 'f> {
     }
 
     fn compile_let(&self, i: &Ident, ty_: &Option<Type>, expr: &Expr) {
-        // allocate register with ty and expr
         let ptr = match ty_.clone().unwrap() {
             Type::UnsignedInteger => self.builder.build_alloca(self.ctx.i64_type(), ""),
             Type::SignedInteger => self.builder.build_alloca(self.ctx.i64_type(), ""),
@@ -199,12 +199,37 @@ impl<'a, 'f> LLVMCodeGen<'a, 'f> {
         }
     }
 
-    fn generate(&'f self) -> String {
+    pub fn compile(&'f self) -> String {
         for stmt in &self.program {
             self.compile_statemt(stmt);
         }
         self.module.print_to_string().to_string()
     }
+}
+
+pub fn generate(module_name: &str, program: Program) -> anyhow::Result<()> {
+    let context = Context::create();
+    let llvm = LLVMCodeGen::new(&context, program, module_name);
+    fs::write("./a.ll", llvm.compile())?;
+
+    let res = std::process::Command::new("llc")
+        .arg("./a.ll")
+        .output()
+        .expect("error while compiling using llc");
+    if !res.status.success() {
+        bail!("can't run llc {:?}", "./a.ll");
+    }
+
+    let res = std::process::Command::new("clang")
+        .arg("./a.s")
+        .output()
+        .expect("error while running clang");
+
+    if !res.status.success() {
+        bail!("can't run clang {:?}", "./a.s");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -235,7 +260,7 @@ mod tests {
         println!("program: {:?}", &program);
 
         let llvm_codegen = LLVMCodeGen::new(&ctx, program, module);
-        let s = llvm_codegen.generate();
+        let s = llvm_codegen.compile();
         println!("{:?}", s);
     }
 
@@ -255,7 +280,7 @@ mod tests {
         let ast = Parser::new(module, source).parse().unwrap();
         println!("{:?}", &ast);
         let llvm_codegen = LLVMCodeGen::new(&ctx, ast, module);
-        println!("{}", llvm_codegen.generate());
+        println!("{}", llvm_codegen.compile());
     }
 
     #[test]
