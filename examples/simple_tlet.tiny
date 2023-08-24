@@ -4,3 +4,8 @@ fun return_something(a: usize) => bool {
     let a: usize = another_var + 353;
     return a;
 }
+
+fun main() => usize {
+    let something: usize = return_something(12);
+    return something;
+}

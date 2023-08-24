@@ -3,6 +3,8 @@ use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, fs, rc::Rc};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use anyhow::bail;
 use anyhow::Result;
+use either::Either;
+use inkwell::values::BasicMetadataValueEnum;
 use inkwell::{
     builder::Builder,
     context::Context,
@@ -124,6 +126,27 @@ impl<'a, 'f> LLVMCodeGen<'a, 'f> {
                 };
                 Ok(v)
             }
+            Expr::Call(fn_call) => {
+                if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+                    let llvm_type_args = fn_call
+                        .parameters
+                        .iter()
+                        .map(|a| self.compile_expr(a).unwrap().into())
+                        .collect::<Vec<BasicMetadataValueEnum>>();
+                    match self
+                        .builder
+                        .build_call(v.0, &llvm_type_args, "")
+                        .try_as_basic_value()
+                    {
+                        Either::Left(v) => Ok(v),
+                        Either::Right(v) => {
+                            bail!("got right");
+                        }
+                    }
+                } else {
+                    bail!("function isn't declared yet.");
+                }
+            }
             _ => unimplemented!(),
         }
     }
@@ -171,8 +194,11 @@ impl<'a, 'f> LLVMCodeGen<'a, 'f> {
     }
 
     fn compile_return(&self, expr: &Expr) -> Result<()> {
+        self.builder.build_return(Some(&self.compile_expr(expr)?));
         Ok(())
     }
+
+    // fn compile_call
 
     fn compile_let(&self, i: &Ident, ty_: &Option<Type>, expr: &Expr) -> Result<()> {
         let ptr = match ty_.clone().unwrap() {
