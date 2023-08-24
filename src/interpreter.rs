@@ -193,6 +193,7 @@ impl Interpreter {
             Literal::Bool(b) => Ok(ExprResult::Bool(b)),
             Literal::UnsignedInteger(i) => Ok(ExprResult::UnsignedInteger(i)),
             Literal::Char(c) => Ok(ExprResult::Char(c)),
+            Literal::String(s) => unimplemented!("implement string support in ast interpreter."),
         }
     }
 
@@ -323,6 +324,9 @@ impl Interpreter {
                         return true;
                     }
                     false
+                }
+                Type::String => {
+                    panic!("string is not yet supported in ast interpreter.")
                 }
             },
         }

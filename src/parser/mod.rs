@@ -130,6 +130,7 @@ impl Parser {
             TokenType::KeywordBool => Ok(Type::Bool),
             TokenType::KeywordChar => Ok(Type::Char),
             TokenType::KeywordIsize => Ok(Type::SignedInteger),
+            TokenType::KeywordStr => Ok(Type::String),
             _ => {
                 bail!("{:?} is not a valid parameter type.", tok);
             }
@@ -466,6 +467,7 @@ impl Parser {
             TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(*val)),
             TokenType::Boolean(val) => Expr::Literal(Literal::Bool(*val)),
             TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
+            TokenType::String(s) => Expr::Literal(Literal::String(Rc::clone(s))),
             TokenType::SQuote => {
                 use TokenType::*;
                 // Parse character.

@@ -1,0 +1,22 @@
+---
+source: src/tests/test_lexer.rs
+expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
+---
+[
+    Token {
+        type_: String(
+            "\"str",
+        ),
+        pos: (
+            0,
+            5,
+        ),
+    },
+    Token {
+        type_: SemiColon,
+        pos: (
+            5,
+            6,
+        ),
+    },
+]
