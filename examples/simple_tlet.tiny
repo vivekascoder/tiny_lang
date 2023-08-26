@@ -7,5 +7,6 @@ fun return_something(a: usize) => bool {
 
 fun main() => usize {
     let something: usize = return_something(12);
+    let string_val: str = "this is a string";
     return something;
 }

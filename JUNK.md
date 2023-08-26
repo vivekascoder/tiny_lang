@@ -136,6 +136,8 @@ define i32 @something(i32 %a, i32 %b) {
 
 ```
 fun something(a: isize, b: isize) => isize {
+    // main_block:
+    let s = 10;
     if (a > b) {
         return a;
     } else {
