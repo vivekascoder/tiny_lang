@@ -16,6 +16,7 @@ use inkwell::{
 };
 use inkwell::{AddressSpace, IntPredicate};
 use log::info;
+use std::borrow::BorrowMut;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 #[derive(Debug)]
@@ -380,14 +381,16 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Value::assert_if_not(&Type::Bool, &condition.ty())?;
 
         let current_fn = self.current_fn.as_ref().borrow().unwrap();
+        let current_fn_block = current_fn.1.clone();
         let if_block = self.ctx.append_basic_block(current_fn.0, "");
         let mut else_block: Option<BasicBlock<'ctx>> = None;
+        let new_block = self.ctx.append_basic_block(current_fn.0, "");
 
         if cond.else_body.is_none() {
             self.builder.build_conditional_branch(
                 condition.val().into_int_value(),
                 if_block,
-                current_fn.1,
+                new_block,
             );
         } else {
             else_block = Some(self.ctx.append_basic_block(current_fn.0, ""));
@@ -400,19 +403,28 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
         // compile if block
         self.builder.position_at_end(if_block);
+        // (*self.current_fn.as_ptr().borrow_mut()).1 = if_block;
+        self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = if_block;
+        // FIXME: Above to support nested if-else.
         for stmt in &cond.if_body {
             self.compile_stmt(stmt)?;
         }
-        self.builder.position_at_end(current_fn.1);
+
+        // create new block for remaining
+        self.builder.position_at_end(new_block);
 
         // compile else block
         if cond.else_body.is_some() {
+            self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = else_block.unwrap();
             self.builder.position_at_end(else_block.unwrap());
             for stmt in cond.else_body.as_ref().unwrap() {
                 self.compile_stmt(stmt)?;
             }
-            self.builder.position_at_end(current_fn.1);
+            self.builder.position_at_end(new_block);
+            self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
         }
+
+        self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
 
         Ok(())
     }
