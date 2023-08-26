@@ -427,6 +427,12 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             for stmt in cond.else_body.as_ref().unwrap() {
                 self.compile_stmt(stmt)?;
             }
+            match cond.else_body.as_ref().unwrap().last().unwrap() {
+                Statement::Return(_) => {}
+                _ => {
+                    self.builder.build_unconditional_branch(new_block);
+                }
+            };
             self.builder.position_at_end(new_block);
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
         }
