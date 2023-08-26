@@ -22,12 +22,14 @@ tiny_lang interpret ./examples/main.tiny
 tiny_lang repl --with (ast/lex/interpret)
 ```
 
-## LLVM Compiler
+## Compiler
 
 To compile the tiny program into machine code use the following command.
 
 ```bash
 tiny_lang compile ./examples/main.tiny
+chmod +x ./a.out
+./a.out
 ```
 
 🗒️ NOTE: Make sure you have llvm installed in your system along with clang, as we rely on `llc` and `clang` to compile.

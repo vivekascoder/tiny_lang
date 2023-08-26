@@ -105,6 +105,7 @@ pub enum Literal {
     UnsignedInteger(usize),
     Bool(bool),
     Char(char),
+    String(Rc<str>),
 }
 
 // enum TVec {
@@ -154,6 +155,7 @@ pub enum Type {
     SignedInteger,
     Bool,
     Char,
+    String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -217,6 +219,7 @@ pub enum TokenType {
     KeywordVoid,
     KeywordChar,
     KeywordWhile,
+    KeywordStr,
 
     // Symbol
     SymbolReturn,
@@ -274,6 +277,7 @@ impl Display for TokenType {
             TokenType::Pipe => write!(f, "|"),
             TokenType::Carrot => write!(f, "^"),
             TokenType::Ampersand => write!(f, "&"),
+            TokenType::KeywordStr => write!(f, "str"),
         }
     }
 }

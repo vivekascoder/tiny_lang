@@ -16,6 +16,13 @@ fn test_lexing_char() {
 }
 
 #[test]
+fn test_lexing_string() {
+    setup();
+    let source = r#""str";"#;
+    insta::assert_debug_snapshot!(Lexer::new("", source).into_iter().collect::<Vec<Token>>());
+}
+
+#[test]
 fn test_function_declaration() {
     setup();
     let source = r#"

@@ -57,6 +57,7 @@ impl Lexer {
             "void" => Some(TokenType::KeywordVoid),
             "char" => Some(TokenType::KeywordChar),
             "while" => Some(TokenType::KeywordWhile),
+            "str" => Some(TokenType::KeywordStr),
             _ => None,
         }
     }
@@ -132,6 +133,18 @@ impl Lexer {
             '(' => {
                 self.bump();
                 Ok(self.token(TokenType::LParen, (self.cur - 1, self.cur)))
+            }
+
+            '\"' => {
+                let start = self.cur;
+                loop {
+                    self.bump();
+                    if self.current() == '\"' {
+                        let val: String = (&self.source[start..self.cur]).iter().collect();
+                        self.bump();
+                        return Ok(self.token(TokenType::String(val.into()), (start, self.cur)));
+                    }
+                }
             }
 
             // tokenize whitespace char.

@@ -1,0 +1,18 @@
+
+
+fun main() => usize {
+    let something: usize = 3435;
+
+    if (something > 100) {
+        if (something > 1000) {
+            return 6969;
+        } else {
+            return 5555;
+        }
+        return something;
+    } 
+    else {
+        return 0;
+    }
+    return 23;
+}

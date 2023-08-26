@@ -18,12 +18,6 @@
 - [x] Write a CLI to manage the whole interpreter.
 - [ ] Some way to parse imports inside a folder and interpret them.
 
-### To achieve: Compiling to WASM.
-
-- [ ] WASM module to compile whole rust interpreter into WASM.
-- [ ] Frontend work to support execution>
-- ... more to come.
-
 ### Migrating lexer and parser.
 
 - [x] Write lexer in logos.
