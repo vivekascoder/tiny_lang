@@ -4,9 +4,9 @@ use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type
 use anyhow::bail;
 use anyhow::Result;
 use either::Either;
+use inkwell::basic_block::BasicBlock;
 use inkwell::values::BasicMetadataValueEnum;
 use inkwell::values::IntValue;
-use inkwell::AddressSpace;
 use inkwell::{
     builder::Builder,
     context::Context,
@@ -14,6 +14,7 @@ use inkwell::{
     types::{AnyTypeEnum, BasicMetadataTypeEnum},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
 };
+use inkwell::{AddressSpace, IntPredicate};
 use log::info;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
@@ -57,6 +58,7 @@ struct LLVMCodeGen<'ctx, 'f> {
     scopes: Rc<RefCell<Vec<HashMap<Rc<str>, (PointerValue<'ctx>, Type)>>>>,
     fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f Function)>>>,
     extern_fns: Rc<RefCell<HashMap<Rc<str>, FunctionValue<'ctx>>>>,
+    current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
 }
 
 // impl<'ctx> Into<AnyTypeEnum<'ctx>> for Type {
@@ -81,6 +83,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             scopes: Rc::new(RefCell::new(vec![])),
             fns: Rc::new(RefCell::new(HashMap::new())),
             extern_fns: Rc::new(RefCell::new(HashMap::new())),
+            current_fn: Rc::new(RefCell::new(None)),
         };
         ll.init_builtins();
         ll
@@ -119,6 +122,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
         match (l_val.val(), r_val.val()) {
             // FIXME: `IntValue` can represent i64, u64, char, bool etc.
+            // TODO: do `icmp` when encountering comparison operators.
             (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => match i {
                 Infix::Plus => Ok(Value::new(
                     l_val.ty(),
@@ -136,6 +140,12 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     l_val.ty(),
                     self.builder
                         .build_int_unsigned_div(l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::GreaterThan => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SGT, l, r, "")
                         .as_basic_value_enum(),
                 )),
                 _ => unimplemented!("plz implement other infix for int values."),
@@ -235,44 +245,44 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
             Expr::Infix(i, l, r) => Ok(self.compile_infix_expr(i, l, r)?),
 
-            // Expr::Call(fn_call) => {
-            //     let llvm_type_args = fn_call
-            //         .parameters
-            //         .iter()
-            //         .map(|a| self.compile_expr(a).unwrap().val().into())
-            //         .collect::<Vec<BasicMetadataValueEnum>>();
-            //     if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
-            //         match self
-            //             .builder
-            //             .build_call(v.0, &llvm_type_args, "")
-            //             .try_as_basic_value()
-            //         {
-            //             Either::Left(val) => Ok(Value::new(v.1.return_type.unwrap(), val)),
-            //             Either::Right(v) => {
-            //                 bail!("got right");
-            //             }
-            //         }
-            //     } else {
-            //         if let Some(f) = self.extern_fns.as_ref().borrow().get(fn_call.name.as_ref()) {
-            //             // let gep = self.builder.build_gep(self.ctx.i8_type().array_type(), ptr, ordered_indexes, name)
-            //             self.builder.build_call(
-            //                 *f,
-            //                 &[
-            //                     self.ctx
-            //                         .i8_type()
-            //                         .const_array(&self.i8_llvm_str("%d"))
-            //                         .into(),
-            //                     *llvm_type_args.first().unwrap(),
-            //                 ],
-            //                 "",
-            //             );
-            //             // Ok(self.ctx.i8_type().const_int(0, false).into())
-            //             unimplemented!("plz implement extern fn call.")
-            //         } else {
-            //             bail!("function isn't declared yet.");
-            //         }
-            //     }
-            // }
+            Expr::Call(fn_call) => {
+                let llvm_type_args = fn_call
+                    .parameters
+                    .iter()
+                    .map(|a| self.compile_expr(a).unwrap().val().into())
+                    .collect::<Vec<BasicMetadataValueEnum>>();
+                if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+                    match self
+                        .builder
+                        .build_call(v.0, &llvm_type_args, "")
+                        .try_as_basic_value()
+                    {
+                        Either::Left(val) => Ok(Value::new(v.1.return_type.unwrap(), val)),
+                        Either::Right(v) => {
+                            bail!("got right");
+                        }
+                    }
+                } else {
+                    if let Some(f) = self.extern_fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+                        // let gep = self.builder.build_gep(self.ctx.i8_type().array_type(), ptr, ordered_indexes, name)
+                        self.builder.build_call(
+                            *f,
+                            &[
+                                self.ctx
+                                    .i8_type()
+                                    .const_array(&self.i8_llvm_str("%d"))
+                                    .into(),
+                                *llvm_type_args.first().unwrap(),
+                            ],
+                            "",
+                        );
+                        // Ok(self.ctx.i8_type().const_int(0, false).into())
+                        unimplemented!("plz implement extern fn call.")
+                    } else {
+                        bail!("function isn't declared yet.");
+                    }
+                }
+            }
             Expr::Prefix(p, expr) => {
                 unimplemented!("plz implement prefix expr compilation ser.")
             }
@@ -311,10 +321,6 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         };
 
         let fn_val = self.module.add_function(&f.name, fn_type, None);
-        self.fns
-            .as_ref()
-            .borrow_mut()
-            .insert(Rc::clone(&f.name), (fn_val, f));
 
         // Append a main function block
         let main_block_name = format!("main_{}_block", f.name);
@@ -322,6 +328,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .ctx
             .append_basic_block(fn_val, &main_block_name.as_str());
         self.builder.position_at_end(main_block);
+        *self.current_fn.as_ref().borrow_mut() = Some((fn_val, main_block));
 
         for stmt in &f.body {
             self.compile_stmt(stmt)?;
@@ -367,16 +374,59 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(())
     }
 
-    fn compile_condition(&self, cond: &Condition) -> Result<()> {
+    fn compile_condition(&self, cond: &'f Condition) -> Result<()> {
         let condition = self.compile_expr(&cond.condition)?;
+
+        Value::assert_if_not(&Type::Bool, &condition.ty())?;
+
+        let current_fn = self.current_fn.as_ref().borrow().unwrap();
+        let if_block = self.ctx.append_basic_block(current_fn.0, "");
+        let mut else_block: Option<BasicBlock<'ctx>> = None;
+
+        if cond.else_body.is_none() {
+            self.builder.build_conditional_branch(
+                condition.val().into_int_value(),
+                if_block,
+                current_fn.1,
+            );
+        } else {
+            else_block = Some(self.ctx.append_basic_block(current_fn.0, ""));
+            self.builder.build_conditional_branch(
+                condition.val().into_int_value(),
+                if_block,
+                else_block.unwrap(),
+            );
+        }
+
+        // compile if block
+        self.builder.position_at_end(if_block);
+        for stmt in &cond.if_body {
+            self.compile_stmt(stmt)?;
+        }
+        self.builder.position_at_end(current_fn.1);
+
+        // compile else block
+        if cond.else_body.is_some() {
+            self.builder.position_at_end(else_block.unwrap());
+            for stmt in cond.else_body.as_ref().unwrap() {
+                self.compile_stmt(stmt)?;
+            }
+            self.builder.position_at_end(current_fn.1);
+        }
 
         Ok(())
     }
 
     fn compile_stmt(&self, stmt: &'f Statement) -> Result<()> {
+        info!("COMPILER: compiling {:?}", &stmt);
         match &stmt {
             Statement::Function(f) => {
-                let _ = self.compile_fn(f)?;
+                let fn_val = self.compile_fn(f)?;
+                self.fns
+                    .as_ref()
+                    .borrow_mut()
+                    .insert(Rc::clone(&f.name), (fn_val, f));
+
                 Ok(())
             }
             Statement::Let(i, ty_, expr) => self.compile_let(i, ty_, expr),
@@ -431,7 +481,7 @@ mod tests {
         passes::PassManagerSubType,
         types::{AsTypeRef, BasicMetadataTypeEnum, BasicType},
         values::{AsValueRef, BasicMetadataValueEnum, BasicValue, PointerValue},
-        AddressSpace,
+        AddressSpace, IntPredicate,
     };
 
     use crate::{
@@ -490,6 +540,46 @@ mod tests {
         println!("{:?}", &ast);
         let llvm_codegen = LLVMCodeGen::new(&ctx, ast, module);
         println!("{}", llvm_codegen.compile().unwrap());
+    }
+
+    #[test]
+    fn test_conditional_branch() {
+        let ctx = Context::create();
+        let builder = ctx.create_builder();
+        let module = ctx.create_module("test");
+
+        let fn_val = module.add_function(
+            "do_something",
+            ctx.i64_type()
+                .fn_type(&[BasicMetadataTypeEnum::IntType(ctx.i64_type())], false),
+            None,
+        );
+        let main_block = ctx.append_basic_block(fn_val, "");
+        builder.position_at_end(main_block);
+
+        let ptr = builder.build_alloca(ctx.i64_type(), "");
+
+        let cmp = builder.build_int_compare(
+            IntPredicate::EQ,
+            ctx.i64_type().const_int(10, false),
+            ctx.i64_type().const_int(10, false),
+            "",
+        );
+        builder.build_store(ptr, cmp);
+
+        let if_block = ctx.append_basic_block(fn_val, "");
+        let else_block = ctx.append_basic_block(fn_val, "");
+
+        builder.build_conditional_branch(cmp, if_block, else_block);
+        builder.position_at_end(if_block);
+        builder.build_return(Some(&ctx.i64_type().const_int(445, false)));
+
+        builder.position_at_end(else_block);
+        builder.build_return(Some(&ctx.i64_type().const_int(445, false)));
+
+        builder.position_at_end(main_block);
+        builder.build_return(Some(&ctx.i64_type().const_int(0, false)));
+        println!("{}", module.print_to_string().to_string());
     }
 
     #[test]
