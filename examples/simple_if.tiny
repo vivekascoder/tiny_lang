@@ -1,11 +1,13 @@
 
 
+// main function
 fun main() => usize {
     let something: usize = 3435;
 
     if (something > 100) {
         if (something > 1000) {
-            return 6969;
+            // return 6969;
+            let a: usize = 34;
         } else {
             return 5555;
         }

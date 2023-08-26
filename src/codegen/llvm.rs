@@ -410,6 +410,13 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             self.compile_stmt(stmt)?;
         }
 
+        match cond.if_body.last().unwrap() {
+            Statement::Return(_) => {}
+            _ => {
+                self.builder.build_unconditional_branch(new_block);
+            }
+        };
+
         // create new block for remaining
         self.builder.position_at_end(new_block);
 
