@@ -1,5 +1,5 @@
 use super::CodeGen;
-use crate::ast::Condition;
+use crate::ast::{Condition, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use anyhow::bail;
 use anyhow::Result;
@@ -16,7 +16,6 @@ use inkwell::{
 };
 use inkwell::{AddressSpace, IntPredicate};
 use log::info;
-use std::borrow::BorrowMut;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 #[derive(Debug)]
@@ -100,7 +99,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     fn init_builtins(&self) {
         let printftp = self.ctx.i32_type().fn_type(
             &[self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-            false,
+            true,
         );
         let printf =
             self.module
@@ -147,6 +146,36 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     Type::Bool,
                     self.builder
                         .build_int_compare(IntPredicate::SGT, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::LessThan => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SLT, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::DoubleEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::EQ, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::NotEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::NE, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::GreaterThanEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SGE, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::LessThanEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SLE, l, r, "")
                         .as_basic_value_enum(),
                 )),
                 _ => unimplemented!("plz implement other infix for int values."),
@@ -442,6 +471,29 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(())
     }
 
+    fn compile_while(&self, while_: &'f While) -> Result<()> {
+        let current_fn = self.current_fn.as_ref().borrow().as_ref().unwrap().0;
+        let loop_cond = self.ctx.append_basic_block(current_fn, "");
+        self.builder.position_at_end(loop_cond);
+        let cond = self.compile_expr(&while_.condition)?;
+        Value::assert_if_not(&Type::Bool, &cond.ty())?;
+
+        let loop_body = self.ctx.append_basic_block(current_fn, "");
+        let new_block = self.ctx.append_basic_block(current_fn, "");
+        self.builder
+            .build_conditional_branch(cond.val().into_int_value(), loop_body, new_block);
+
+        self.builder.position_at_end(loop_body);
+        for stmt in &while_.body {
+            self.compile_stmt(stmt)?;
+        }
+        self.builder.build_unconditional_branch(loop_cond);
+
+        self.builder.position_at_end(new_block);
+
+        Ok(())
+    }
+
     fn compile_stmt(&self, stmt: &'f Statement) -> Result<()> {
         info!("COMPILER: compiling {:?}", &stmt);
         match &stmt {
@@ -461,6 +513,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 Ok(())
             }
             Statement::If(c) => self.compile_condition(c),
+            Statement::While(while_) => self.compile_while(while_),
             _ => bail!("not yet supported."),
         }
     }
