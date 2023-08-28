@@ -1,5 +1,5 @@
 use super::CodeGen;
-use crate::ast::Condition;
+use crate::ast::{Condition, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use anyhow::bail;
 use anyhow::Result;
@@ -16,7 +16,7 @@ use inkwell::{
 };
 use inkwell::{AddressSpace, IntPredicate};
 use log::info;
-use std::borrow::BorrowMut;
+use std::hash::Hash;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 #[derive(Debug)]
@@ -90,6 +90,17 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         ll
     }
 
+    fn push_scope(&self) {
+        self.scopes.as_ref().borrow_mut().push(HashMap::new());
+    }
+
+    fn pop_current_scope(&self) {
+        info!(
+            "scope popped: {:?}",
+            self.scopes.as_ref().borrow_mut().pop()
+        );
+    }
+
     fn i8_llvm_str(&self, v: &str) -> Vec<IntValue> {
         v.bytes()
             .into_iter()
@@ -100,7 +111,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     fn init_builtins(&self) {
         let printftp = self.ctx.i32_type().fn_type(
             &[self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-            false,
+            true,
         );
         let printf =
             self.module
@@ -147,6 +158,36 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     Type::Bool,
                     self.builder
                         .build_int_compare(IntPredicate::SGT, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::LessThan => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SLT, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::DoubleEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::EQ, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::NotEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::NE, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::GreaterThanEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SGE, l, r, "")
+                        .as_basic_value_enum(),
+                )),
+                Infix::LessThanEqual => Ok(Value::new(
+                    Type::Bool,
+                    self.builder
+                        .build_int_compare(IntPredicate::SLE, l, r, "")
                         .as_basic_value_enum(),
                 )),
                 _ => unimplemented!("plz implement other infix for int values."),
@@ -253,13 +294,17 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     .map(|a| self.compile_expr(a).unwrap().val().into())
                     .collect::<Vec<BasicMetadataValueEnum>>();
                 if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+                    self.push_scope();
                     match self
                         .builder
                         .build_call(v.0, &llvm_type_args, "")
                         .try_as_basic_value()
                     {
-                        Either::Left(val) => Ok(Value::new(v.1.return_type.unwrap(), val)),
-                        Either::Right(v) => {
+                        Either::Left(val) => {
+                            self.pop_current_scope();
+                            Ok(Value::new(v.1.return_type.unwrap(), val))
+                        }
+                        Either::Right(_) => {
                             bail!("got right");
                         }
                     }
@@ -335,6 +380,8 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             self.compile_stmt(stmt)?;
         }
 
+        // Delete the scope?
+
         Ok(fn_val)
     }
 
@@ -376,8 +423,8 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     fn compile_condition(&self, cond: &'f Condition) -> Result<()> {
+        self.push_scope();
         let condition = self.compile_expr(&cond.condition)?;
-
         Value::assert_if_not(&Type::Bool, &condition.ty())?;
 
         let current_fn = self.current_fn.as_ref().borrow().unwrap();
@@ -410,21 +457,84 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             self.compile_stmt(stmt)?;
         }
 
+        match cond.if_body.last().unwrap() {
+            Statement::Return(_) => {}
+            _ => {
+                self.builder.build_unconditional_branch(new_block);
+            }
+        };
+
         // create new block for remaining
         self.builder.position_at_end(new_block);
 
         // compile else block
         if cond.else_body.is_some() {
+            self.push_scope();
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = else_block.unwrap();
             self.builder.position_at_end(else_block.unwrap());
             for stmt in cond.else_body.as_ref().unwrap() {
                 self.compile_stmt(stmt)?;
             }
+            match cond.else_body.as_ref().unwrap().last().unwrap() {
+                Statement::Return(_) => {}
+                _ => {
+                    self.builder.build_unconditional_branch(new_block);
+                }
+            };
             self.builder.position_at_end(new_block);
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
+            self.pop_current_scope();
         }
 
         self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
+
+        Ok(())
+    }
+
+    fn compile_while(&self, while_: &'f While) -> Result<()> {
+        self.push_scope();
+        let current_fn = self.current_fn.as_ref().borrow().as_ref().unwrap().0;
+        let loop_cond = self.ctx.append_basic_block(current_fn, "");
+        self.builder.build_unconditional_branch(loop_cond);
+        self.builder.position_at_end(loop_cond);
+        let cond = self.compile_expr(&while_.condition)?;
+        Value::assert_if_not(&Type::Bool, &cond.ty())?;
+
+        let loop_body = self.ctx.append_basic_block(current_fn, "");
+        let new_block = self.ctx.append_basic_block(current_fn, "");
+        self.builder
+            .build_conditional_branch(cond.val().into_int_value(), loop_body, new_block);
+
+        self.builder.position_at_end(loop_body);
+        for stmt in &while_.body {
+            self.compile_stmt(stmt)?;
+        }
+
+        // If you encounter a return statement ?
+        // create new block and
+
+        self.builder.build_unconditional_branch(loop_cond);
+
+        self.builder.position_at_end(new_block);
+        self.pop_current_scope();
+
+        Ok(())
+    }
+
+    fn compile_mutate(&self, ident: &Ident, expr: &Expr) -> Result<()> {
+        let new_val = self.compile_expr(expr)?;
+
+        if let Some((ptr, ty_)) = self
+            .scopes
+            .as_ref()
+            .borrow()
+            .iter()
+            .rev()
+            .find_map(|s| s.get(&ident.0))
+        {
+            Value::assert_if_not(&new_val.ty(), ty_)?;
+            self.builder.build_store(*ptr, new_val.val());
+        }
 
         Ok(())
     }
@@ -448,12 +558,19 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 Ok(())
             }
             Statement::If(c) => self.compile_condition(c),
-            _ => bail!("not yet supported."),
+            Statement::While(while_) => self.compile_while(while_),
+            Statement::Mutate(var, expr) => self.compile_mutate(var, expr),
         }
     }
 
     pub fn compile(&'f self) -> Result<String> {
         for stmt in &self.program {
+            match &stmt {
+                Statement::Function(_) => {}
+                _ => {
+                    bail!("top level statements can't be {:?}", &stmt);
+                }
+            };
             self.compile_stmt(stmt)?;
         }
         Ok(self.module.print_to_string().to_string())

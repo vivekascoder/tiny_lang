@@ -211,6 +211,13 @@ fun main() => i32 {
 }
 ```
 
+## Building WASM
+
+```
+llc -mtriple=wasm32-unknown-unknown -O3 -filetype=obj ./a.ll -o a.o
+wasm-ld ./a.o -o a.wasm --no-entry --allow-undefined
+```
+
 ## Resources
 
 - https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/docs/ir.md

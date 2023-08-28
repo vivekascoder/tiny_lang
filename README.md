@@ -1,6 +1,10 @@
+<div align="center">
+    <img src="./docs/logo.webp" alt="Tiny Lang" width="300">
+</div>
+
 # Tiny Lang
 
-Tiny Lang is a toy programming language. It'll soon support compiling to WASM.
+Tiny Lang is a toy programming language.
 
 ## Install
 
@@ -33,6 +37,14 @@ chmod +x ./a.out
 ```
 
 🗒️ NOTE: Make sure you have llvm installed in your system along with clang, as we rely on `llc` and `clang` to compile.
+
+## Syntax highlighting for tiny programs
+
+```
+cp -r ./syntax ~/.vscode/extensions/
+```
+
+After restarting your VsCode, you'll have tiny lang syntax support.
 
 ## Examples
 
