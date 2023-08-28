@@ -1,22 +1,21 @@
-use super::CodeGen;
 use crate::ast::{Condition, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use anyhow::bail;
 use anyhow::Result;
 use either::Either;
 use inkwell::basic_block::BasicBlock;
+use inkwell::module::Linkage;
 use inkwell::values::BasicMetadataValueEnum;
 use inkwell::values::IntValue;
 use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
-    types::{AnyTypeEnum, BasicMetadataTypeEnum},
+    types::BasicMetadataTypeEnum,
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
 };
 use inkwell::{AddressSpace, IntPredicate};
 use log::info;
-use std::hash::Hash;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 #[derive(Debug)]
@@ -62,13 +61,71 @@ struct LLVMCodeGen<'ctx, 'f> {
     current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
 }
 
-// impl<'ctx> Into<AnyTypeEnum<'ctx>> for Type {
-//     fn into(self) -> AnyTypeEnum<'ctx> {
-//         match self {
-//             Type::UnsignedInteger => AnyTypeEnum::IntType(In),
-//         }
-//     }
-// }
+struct LibcFunction;
+impl LibcFunction {
+    pub fn printf<'ctx>(
+        ctx: &'ctx Context,
+        module: &Module<'ctx>,
+    ) -> (Rc<str>, FunctionValue<'ctx>) {
+        let printftp = ctx.i32_type().fn_type(
+            &[ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
+            true,
+        );
+        let printf = module.add_function("printf", printftp, Some(Linkage::External));
+        ("printf".into(), printf)
+    }
+
+    pub fn malloc<'ctx>(
+        ctx: &'ctx Context,
+        module: &Module<'ctx>,
+    ) -> (Rc<str>, FunctionValue<'ctx>) {
+        (
+            "malloc".into(),
+            module.add_function(
+                "malloc",
+                ctx.i8_type()
+                    .ptr_type(AddressSpace::from(0))
+                    .fn_type(&[ctx.i32_type().into()], false),
+                Some(Linkage::External),
+            ),
+        )
+    }
+
+    pub fn free<'ctx>(ctx: &'ctx Context, module: &Module<'ctx>) -> (Rc<str>, FunctionValue<'ctx>) {
+        (
+            "free".into(),
+            module.add_function(
+                "free",
+                ctx.void_type().fn_type(
+                    &[ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
+                    false,
+                ),
+                Some(Linkage::External),
+            ),
+        )
+    }
+
+    pub fn memcpy<'ctx>(
+        ctx: &'ctx Context,
+        module: &Module<'ctx>,
+    ) -> (Rc<str>, FunctionValue<'ctx>) {
+        (
+            "memcpy".into(),
+            module.add_function(
+                "memcpy",
+                ctx.void_type().fn_type(
+                    &[
+                        ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                        ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                        ctx.i32_type().into(),
+                    ],
+                    false,
+                ),
+                Some(Linkage::External),
+            ),
+        )
+    }
+}
 
 /// # Main codegen part
 /// https://llvm.org/docs/LangRef.html
@@ -108,19 +165,15 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .collect::<Vec<IntValue>>()
     }
 
-    fn init_builtins(&self) {
-        let printftp = self.ctx.i32_type().fn_type(
-            &[self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-            true,
-        );
-        let printf =
-            self.module
-                .add_function("printf", printftp, Some(inkwell::module::Linkage::External));
+    fn insert_extfunc(&self, v: (Rc<str>, FunctionValue<'ctx>)) {
+        self.extern_fns.as_ref().borrow_mut().insert(v.0, v.1);
+    }
 
-        self.extern_fns
-            .as_ref()
-            .borrow_mut()
-            .insert("printf".into(), printf);
+    fn init_builtins(&self) {
+        self.insert_extfunc(LibcFunction::printf(self.ctx, &self.module));
+        self.insert_extfunc(LibcFunction::malloc(self.ctx, &self.module));
+        self.insert_extfunc(LibcFunction::free(self.ctx, &self.module));
+        self.insert_extfunc(LibcFunction::memcpy(self.ctx, &self.module));
     }
 
     fn compile_infix_expr(&self, i: &Infix, l: &Expr, r: &Expr) -> Result<Value<'ctx>> {
