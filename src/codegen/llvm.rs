@@ -474,6 +474,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     fn compile_while(&self, while_: &'f While) -> Result<()> {
         let current_fn = self.current_fn.as_ref().borrow().as_ref().unwrap().0;
         let loop_cond = self.ctx.append_basic_block(current_fn, "");
+        self.builder.build_unconditional_branch(loop_cond);
         self.builder.position_at_end(loop_cond);
         let cond = self.compile_expr(&while_.condition)?;
         Value::assert_if_not(&Type::Bool, &cond.ty())?;
@@ -487,9 +488,21 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         for stmt in &while_.body {
             self.compile_stmt(stmt)?;
         }
+
+        // If you encounter a return statement ?
+        // create new block and
+
         self.builder.build_unconditional_branch(loop_cond);
 
         self.builder.position_at_end(new_block);
+
+        Ok(())
+    }
+
+    fn compile_mutate(&self, ident: &Ident, expr: &Expr) -> Result<()> {
+        let new_val = self.compile_expr(expr)?;
+
+        // if self.scopes.as_ref().borrow().last().as_ref().unwrap().cont
 
         Ok(())
     }
@@ -514,12 +527,18 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             }
             Statement::If(c) => self.compile_condition(c),
             Statement::While(while_) => self.compile_while(while_),
-            _ => bail!("not yet supported."),
+            Statement::Mutate(var, expr) => self.compile_mutate(var, expr),
         }
     }
 
     pub fn compile(&'f self) -> Result<String> {
         for stmt in &self.program {
+            match &stmt {
+                Statement::Function(_) => {}
+                _ => {
+                    bail!("top level statements can't be {:?}", &stmt);
+                }
+            };
             self.compile_stmt(stmt)?;
         }
         Ok(self.module.print_to_string().to_string())

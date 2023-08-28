@@ -1,5 +1,9 @@
 # Tiny Lang
 
+<center>
+    <img src="./docs/logo.webp" width="300">
+</center>
+
 Tiny Lang is a toy programming language. It'll soon support compiling to WASM.
 
 ## Install

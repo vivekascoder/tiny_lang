@@ -2,9 +2,12 @@
 * Demostration of while loop in tiny lang.
 **/
 
-let i = 0;
-while (i < 5) {
-    print(i);
-    print('\n');
-    i = i + 1;
+fun main() => usize {
+    let i: usize = 0;
+    while (i < 5) {
+        // print(i);
+        // print('\n');
+        // i = i + 1;
+    }
+    return 0;
 }
