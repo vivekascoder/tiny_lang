@@ -16,6 +16,7 @@ use inkwell::{
 };
 use inkwell::{AddressSpace, IntPredicate};
 use log::info;
+use std::hash::Hash;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 #[derive(Debug)]
@@ -87,6 +88,17 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         };
         ll.init_builtins();
         ll
+    }
+
+    fn push_scope(&self) {
+        self.scopes.as_ref().borrow_mut().push(HashMap::new());
+    }
+
+    fn pop_current_scope(&self) {
+        info!(
+            "scope popped: {:?}",
+            self.scopes.as_ref().borrow_mut().pop()
+        );
     }
 
     fn i8_llvm_str(&self, v: &str) -> Vec<IntValue> {
@@ -282,13 +294,17 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     .map(|a| self.compile_expr(a).unwrap().val().into())
                     .collect::<Vec<BasicMetadataValueEnum>>();
                 if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+                    self.push_scope();
                     match self
                         .builder
                         .build_call(v.0, &llvm_type_args, "")
                         .try_as_basic_value()
                     {
-                        Either::Left(val) => Ok(Value::new(v.1.return_type.unwrap(), val)),
-                        Either::Right(v) => {
+                        Either::Left(val) => {
+                            self.pop_current_scope();
+                            Ok(Value::new(v.1.return_type.unwrap(), val))
+                        }
+                        Either::Right(_) => {
                             bail!("got right");
                         }
                     }
@@ -364,6 +380,8 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             self.compile_stmt(stmt)?;
         }
 
+        // Delete the scope?
+
         Ok(fn_val)
     }
 
@@ -405,8 +423,8 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     fn compile_condition(&self, cond: &'f Condition) -> Result<()> {
+        self.push_scope();
         let condition = self.compile_expr(&cond.condition)?;
-
         Value::assert_if_not(&Type::Bool, &condition.ty())?;
 
         let current_fn = self.current_fn.as_ref().borrow().unwrap();
@@ -451,6 +469,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
         // compile else block
         if cond.else_body.is_some() {
+            self.push_scope();
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = else_block.unwrap();
             self.builder.position_at_end(else_block.unwrap());
             for stmt in cond.else_body.as_ref().unwrap() {
@@ -464,6 +483,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             };
             self.builder.position_at_end(new_block);
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
+            self.pop_current_scope();
         }
 
         self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
@@ -472,6 +492,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     fn compile_while(&self, while_: &'f While) -> Result<()> {
+        self.push_scope();
         let current_fn = self.current_fn.as_ref().borrow().as_ref().unwrap().0;
         let loop_cond = self.ctx.append_basic_block(current_fn, "");
         self.builder.build_unconditional_branch(loop_cond);
@@ -495,6 +516,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         self.builder.build_unconditional_branch(loop_cond);
 
         self.builder.position_at_end(new_block);
+        self.pop_current_scope();
 
         Ok(())
     }
@@ -502,7 +524,17 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     fn compile_mutate(&self, ident: &Ident, expr: &Expr) -> Result<()> {
         let new_val = self.compile_expr(expr)?;
 
-        // if self.scopes.as_ref().borrow().last().as_ref().unwrap().cont
+        if let Some((ptr, ty_)) = self
+            .scopes
+            .as_ref()
+            .borrow()
+            .iter()
+            .rev()
+            .find_map(|s| s.get(&ident.0))
+        {
+            Value::assert_if_not(&new_val.ty(), ty_)?;
+            self.builder.build_store(*ptr, new_val.val());
+        }
 
         Ok(())
     }

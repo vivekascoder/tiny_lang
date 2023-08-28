@@ -1,8 +1,8 @@
-# Tiny Lang
-
 <div align="center">
     <img src="./docs/logo.webp" alt="Tiny Lang" width="300">
 </div>
+
+# Tiny Lang
 
 Tiny Lang is a toy programming language.
 
