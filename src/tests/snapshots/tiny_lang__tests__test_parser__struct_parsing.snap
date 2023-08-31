@@ -1,0 +1,33 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(\"\", code).parse()"
+---
+Ok(
+    [
+        Struct(
+            Struct {
+                name: "something",
+                fields: [
+                    (
+                        Ident(
+                            "name",
+                        ),
+                        String,
+                    ),
+                    (
+                        Ident(
+                            "age",
+                        ),
+                        UnsignedInteger,
+                    ),
+                    (
+                        Ident(
+                            "is_dev",
+                        ),
+                        Bool,
+                    ),
+                ],
+            },
+        ),
+    ],
+)

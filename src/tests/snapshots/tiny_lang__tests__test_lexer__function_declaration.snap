@@ -1,6 +1,6 @@
 ---
 source: src/tests/test_lexer.rs
-expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
+expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
 ---
 [
     Token {
@@ -9,6 +9,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             9,
             12,
         ),
+        row: 2,
+        col: 12,
     },
     Token {
         type_: Identifier(
@@ -18,6 +20,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             13,
             32,
         ),
+        row: 2,
+        col: 32,
     },
     Token {
         type_: LParen,
@@ -25,6 +29,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             32,
             33,
         ),
+        row: 2,
+        col: 33,
     },
     Token {
         type_: Identifier(
@@ -34,6 +40,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             33,
             34,
         ),
+        row: 2,
+        col: 34,
     },
     Token {
         type_: Colon,
@@ -41,6 +49,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             34,
             35,
         ),
+        row: 2,
+        col: 35,
     },
     Token {
         type_: KeywordUsize,
@@ -48,6 +58,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             36,
             41,
         ),
+        row: 2,
+        col: 41,
     },
     Token {
         type_: Comma,
@@ -55,6 +67,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             41,
             42,
         ),
+        row: 2,
+        col: 42,
     },
     Token {
         type_: Identifier(
@@ -64,6 +78,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             43,
             44,
         ),
+        row: 2,
+        col: 44,
     },
     Token {
         type_: Colon,
@@ -71,6 +87,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             44,
             45,
         ),
+        row: 2,
+        col: 45,
     },
     Token {
         type_: KeywordUsize,
@@ -78,6 +96,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             46,
             51,
         ),
+        row: 2,
+        col: 51,
     },
     Token {
         type_: RParen,
@@ -85,6 +105,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             51,
             52,
         ),
+        row: 2,
+        col: 52,
     },
     Token {
         type_: SymbolReturn,
@@ -92,6 +114,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             53,
             55,
         ),
+        row: 2,
+        col: 55,
     },
     Token {
         type_: KeywordBool,
@@ -99,6 +123,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             56,
             60,
         ),
+        row: 2,
+        col: 60,
     },
     Token {
         type_: LBrace,
@@ -106,6 +132,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             61,
             62,
         ),
+        row: 2,
+        col: 62,
     },
     Token {
         type_: KeywordIf,
@@ -113,6 +141,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             75,
             77,
         ),
+        row: 3,
+        col: 15,
     },
     Token {
         type_: LParen,
@@ -120,6 +150,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             78,
             79,
         ),
+        row: 3,
+        col: 17,
     },
     Token {
         type_: Identifier(
@@ -129,6 +161,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             79,
             80,
         ),
+        row: 3,
+        col: 18,
     },
     Token {
         type_: GreaterThan,
@@ -136,6 +170,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             81,
             82,
         ),
+        row: 3,
+        col: 20,
     },
     Token {
         type_: Identifier(
@@ -145,6 +181,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             83,
             84,
         ),
+        row: 3,
+        col: 22,
     },
     Token {
         type_: RParen,
@@ -152,6 +190,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             84,
             85,
         ),
+        row: 3,
+        col: 23,
     },
     Token {
         type_: LBrace,
@@ -159,6 +199,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             86,
             87,
         ),
+        row: 3,
+        col: 25,
     },
     Token {
         type_: KeywordReturn,
@@ -166,6 +208,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             104,
             110,
         ),
+        row: 4,
+        col: 23,
     },
     Token {
         type_: Boolean(
@@ -175,6 +219,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             111,
             115,
         ),
+        row: 4,
+        col: 28,
     },
     Token {
         type_: SemiColon,
@@ -182,6 +228,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             115,
             116,
         ),
+        row: 4,
+        col: 29,
     },
     Token {
         type_: RBrace,
@@ -189,6 +237,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             129,
             130,
         ),
+        row: 5,
+        col: 14,
     },
     Token {
         type_: KeywordElse,
@@ -196,6 +246,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             131,
             135,
         ),
+        row: 5,
+        col: 19,
     },
     Token {
         type_: LBrace,
@@ -203,6 +255,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             136,
             137,
         ),
+        row: 5,
+        col: 21,
     },
     Token {
         type_: KeywordReturn,
@@ -210,6 +264,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             154,
             160,
         ),
+        row: 6,
+        col: 23,
     },
     Token {
         type_: Boolean(
@@ -219,6 +275,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             161,
             166,
         ),
+        row: 6,
+        col: 29,
     },
     Token {
         type_: SemiColon,
@@ -226,6 +284,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             166,
             167,
         ),
+        row: 6,
+        col: 30,
     },
     Token {
         type_: RBrace,
@@ -233,6 +293,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             180,
             181,
         ),
+        row: 7,
+        col: 14,
     },
     Token {
         type_: RBrace,
@@ -240,5 +302,7 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             190,
             191,
         ),
+        row: 8,
+        col: 10,
     },
 ]

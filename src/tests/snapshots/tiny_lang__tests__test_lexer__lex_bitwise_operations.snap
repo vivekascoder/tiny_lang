@@ -9,6 +9,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             5,
             8,
         ),
+        row: 2,
+        col: 8,
     },
     Token {
         type_: Identifier(
@@ -18,6 +20,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             9,
             10,
         ),
+        row: 2,
+        col: 10,
     },
     Token {
         type_: Equal,
@@ -25,6 +29,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             11,
             12,
         ),
+        row: 2,
+        col: 12,
     },
     Token {
         type_: Usize(
@@ -34,6 +40,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             13,
             15,
         ),
+        row: 2,
+        col: 15,
     },
     Token {
         type_: Pipe,
@@ -41,6 +49,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             16,
             17,
         ),
+        row: 2,
+        col: 17,
     },
     Token {
         type_: Usize(
@@ -50,6 +60,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             18,
             20,
         ),
+        row: 2,
+        col: 20,
     },
     Token {
         type_: SemiColon,
@@ -57,6 +69,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             20,
             21,
         ),
+        row: 2,
+        col: 21,
     },
     Token {
         type_: KeywordLet,
@@ -64,6 +78,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             26,
             29,
         ),
+        row: 3,
+        col: 8,
     },
     Token {
         type_: Identifier(
@@ -73,6 +89,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             30,
             31,
         ),
+        row: 3,
+        col: 10,
     },
     Token {
         type_: Equal,
@@ -80,6 +98,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             32,
             33,
         ),
+        row: 3,
+        col: 12,
     },
     Token {
         type_: Usize(
@@ -89,6 +109,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             34,
             36,
         ),
+        row: 3,
+        col: 15,
     },
     Token {
         type_: Carrot,
@@ -96,6 +118,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             37,
             38,
         ),
+        row: 3,
+        col: 17,
     },
     Token {
         type_: Usize(
@@ -105,6 +129,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             39,
             40,
         ),
+        row: 3,
+        col: 19,
     },
     Token {
         type_: SemiColon,
@@ -112,6 +138,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             40,
             41,
         ),
+        row: 3,
+        col: 20,
     },
     Token {
         type_: KeywordLet,
@@ -119,6 +147,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             46,
             49,
         ),
+        row: 4,
+        col: 8,
     },
     Token {
         type_: Identifier(
@@ -128,6 +158,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             50,
             51,
         ),
+        row: 4,
+        col: 10,
     },
     Token {
         type_: Equal,
@@ -135,6 +167,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             52,
             53,
         ),
+        row: 4,
+        col: 12,
     },
     Token {
         type_: Usize(
@@ -144,6 +178,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             54,
             56,
         ),
+        row: 4,
+        col: 15,
     },
     Token {
         type_: Ampersand,
@@ -151,6 +187,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             57,
             58,
         ),
+        row: 4,
+        col: 17,
     },
     Token {
         type_: Usize(
@@ -160,6 +198,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             59,
             60,
         ),
+        row: 4,
+        col: 19,
     },
     Token {
         type_: SemiColon,
@@ -167,6 +207,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             60,
             61,
         ),
+        row: 4,
+        col: 20,
     },
     Token {
         type_: KeywordLet,
@@ -174,6 +216,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             66,
             69,
         ),
+        row: 5,
+        col: 8,
     },
     Token {
         type_: Identifier(
@@ -183,6 +227,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             70,
             71,
         ),
+        row: 5,
+        col: 10,
     },
     Token {
         type_: Equal,
@@ -190,6 +236,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             72,
             73,
         ),
+        row: 5,
+        col: 12,
     },
     Token {
         type_: Usize(
@@ -199,6 +247,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             74,
             76,
         ),
+        row: 5,
+        col: 15,
     },
     Token {
         type_: LeftShift,
@@ -206,6 +256,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             77,
             79,
         ),
+        row: 5,
+        col: 18,
     },
     Token {
         type_: Usize(
@@ -215,6 +267,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             80,
             81,
         ),
+        row: 5,
+        col: 20,
     },
     Token {
         type_: SemiColon,
@@ -222,6 +276,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             81,
             82,
         ),
+        row: 5,
+        col: 21,
     },
     Token {
         type_: KeywordLet,
@@ -229,6 +285,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             87,
             90,
         ),
+        row: 6,
+        col: 8,
     },
     Token {
         type_: Identifier(
@@ -238,6 +296,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             91,
             92,
         ),
+        row: 6,
+        col: 10,
     },
     Token {
         type_: Equal,
@@ -245,6 +305,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             93,
             94,
         ),
+        row: 6,
+        col: 12,
     },
     Token {
         type_: Usize(
@@ -254,6 +316,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             95,
             96,
         ),
+        row: 6,
+        col: 14,
     },
     Token {
         type_: RightShift,
@@ -261,6 +325,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             97,
             99,
         ),
+        row: 6,
+        col: 17,
     },
     Token {
         type_: Usize(
@@ -270,6 +336,8 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             100,
             102,
         ),
+        row: 6,
+        col: 20,
     },
     Token {
         type_: SemiColon,
@@ -277,5 +345,7 @@ expression: "Lexer::new(\"\", code).into_iter().collect::<Vec<Token>>()"
             102,
             103,
         ),
+        row: 6,
+        col: 21,
     },
 ]

@@ -11,6 +11,8 @@ expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
             0,
             5,
         ),
+        row: 1,
+        col: 5,
     },
     Token {
         type_: SemiColon,
@@ -18,5 +20,7 @@ expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
             5,
             6,
         ),
+        row: 1,
+        col: 6,
     },
 ]

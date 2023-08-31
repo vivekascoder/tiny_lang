@@ -1,6 +1,6 @@
 ---
 source: src/tests/test_lexer.rs
-expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
+expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
 ---
 [
     Token {
@@ -9,6 +9,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             0,
             3,
         ),
+        row: 1,
+        col: 3,
     },
     Token {
         type_: Identifier(
@@ -18,6 +20,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             4,
             12,
         ),
+        row: 1,
+        col: 12,
     },
     Token {
         type_: Colon,
@@ -25,6 +29,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             12,
             13,
         ),
+        row: 1,
+        col: 13,
     },
     Token {
         type_: KeywordUsize,
@@ -32,6 +38,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             14,
             19,
         ),
+        row: 1,
+        col: 19,
     },
     Token {
         type_: Equal,
@@ -39,6 +47,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             20,
             21,
         ),
+        row: 1,
+        col: 21,
     },
     Token {
         type_: Usize(
@@ -48,6 +58,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             22,
             25,
         ),
+        row: 1,
+        col: 25,
     },
     Token {
         type_: Plus,
@@ -55,6 +67,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             26,
             27,
         ),
+        row: 1,
+        col: 27,
     },
     Token {
         type_: Usize(
@@ -64,6 +78,8 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             28,
             33,
         ),
+        row: 1,
+        col: 33,
     },
     Token {
         type_: SemiColon,
@@ -71,5 +87,7 @@ expression: "Lexer::new(source).into_iter().collect::<Vec<Token>>()"
             33,
             34,
         ),
+        row: 1,
+        col: 34,
     },
 ]

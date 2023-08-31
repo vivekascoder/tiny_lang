@@ -1,3 +1,4 @@
+use env_logger::init;
 use log::info;
 
 use crate::{parser::Parser, tests::setup};
@@ -61,6 +62,19 @@ fn test_function_parsing() {
         }
         "#;
 
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
+fn test_struct_parsing() {
+    init();
+    let code = r#"
+    struct something {
+        name: str,
+        age: usize,
+        is_dev: bool,
+    };
+    "#;
     insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 

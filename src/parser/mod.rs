@@ -435,6 +435,69 @@ impl Parser {
         }
     }
 
+    fn parse_struct(&mut self) -> Result<Statement> {
+        let var = match self.next_token.as_ref().type_ {
+            TokenType::Identifier(ref i) => Rc::clone(i),
+            _ => {
+                bail!(
+                    "expected struct name, got {:?} instead.",
+                    self.current_token
+                );
+            }
+        };
+        self.bump()?;
+
+        if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
+            bail!(
+                "expected `{{` after struct name got {:?} instead.",
+                self.current_token.type_
+            );
+        }
+
+        let mut fields: Vec<(Ident, Type)> = vec![];
+
+        while !self.next_token_is(&Rc::new(TokenType::RBrace)) {
+            let f_name = match self.next_token.type_ {
+                TokenType::Identifier(ref i) => Rc::clone(i),
+                _ => {
+                    bail!(
+                        "expected field name got {:?} instead",
+                        self.next_token.type_
+                    );
+                }
+            };
+            self.bump()?;
+
+            if !self.expect_next_token(&Rc::new(TokenType::Colon))? {
+                bail!(
+                    "expected `:` after struct field name got {:?} instead",
+                    self.current_token.type_
+                );
+            }
+            let type_ = self.parse_type()?;
+            fields.push((Ident(f_name), type_));
+            self.bump()?;
+
+            if !self.expect_next_token(&Rc::new(TokenType::Comma))? {
+                bail!(
+                    "expected `,` after field type got {:?} instead",
+                    self.current_token.type_
+                );
+            }
+        }
+
+        self.bump()?;
+        if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
+            bail!("expected `;` after `}}` in struct def.");
+        }
+        self.bump()?;
+
+        Ok(Statement::Struct(Struct {
+            name: var,
+            fields: fields,
+        }))
+    }
+
     fn parse_statement(&mut self) -> Result<Statement> {
         info!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token.as_ref().type_ {
@@ -444,6 +507,7 @@ impl Parser {
             TokenType::KeywordWhile => self.parse_while_statement()?,
             TokenType::KeywordReturn => self.parse_return_statement()?,
             TokenType::Identifier(_) => self.parse_assign_or_expr()?,
+            TokenType::KeywordStruct => self.parse_struct()?,
             _ => self.parse_expression_statement()?,
         })
     }

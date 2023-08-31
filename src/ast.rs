@@ -136,6 +136,13 @@ pub enum Statement {
     If(Condition),
     Expr(Expr),
     While(While),
+    Struct(Struct),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Struct {
+    pub name: Rc<str>,
+    pub fields: Vec<(Ident, Type)>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -237,6 +244,7 @@ pub enum TokenType {
     KeywordStr,
     KeywordExtern,
     KeywordI8,
+    KeywordStruct,
 
     // Symbol
     SymbolReturn,

@@ -65,6 +65,7 @@ impl Lexer {
             "while" => Some(TokenType::KeywordWhile),
             "str" => Some(TokenType::KeywordStr),
             "extern" => Some(TokenType::KeywordExtern),
+            "struct" => Some(TokenType::KeywordStruct),
             _ => None,
         }
     }

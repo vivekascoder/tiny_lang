@@ -1,4 +1,4 @@
-use crate::ast::{Condition, ExternFunction, While};
+use crate::ast::{Condition, ExternFunction, Struct, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use anyhow::bail;
 use anyhow::Result;
@@ -636,6 +636,10 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(fn_val)
     }
 
+    fn compile_struct(&self, struct_: &Struct) -> Result<()> {
+        Ok(())
+    }
+
     fn compile_stmt(&self, stmt: &'f Statement) -> Result<()> {
         info!("COMPILER: compiling {:?}", &stmt);
         match &stmt {
@@ -665,6 +669,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     .insert(Rc::clone(&ex_fun.name), fn_);
                 Ok(())
             }
+            Statement::Struct(s) => self.compile_struct(s),
         }
     }
 
