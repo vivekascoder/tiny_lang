@@ -303,10 +303,6 @@ pub enum TokenType {
 pub struct Token {
     pub type_: TokenType,
     pub pos: (usize, usize),
-}
-
-impl Token {
-    pub fn new(type_: TokenType, pos: (usize, usize)) -> Self {
-        Self { type_, pos }
-    }
+    pub row: usize,
+    pub col: usize,
 }

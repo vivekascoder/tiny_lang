@@ -356,10 +356,8 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         self.builder.build_call(
                             *f,
                             &[
-                                self.ctx
-                                    .i8_type()
-                                    .const_array(&self.i8_llvm_str("%d"))
-                                    .into(),
+                                // self.builder
+                                // .build_gep(pointee_ty, ptr, ordered_indexes, name),
                                 *llvm_type_args.first().unwrap(),
                             ],
                             "",
@@ -896,6 +894,9 @@ mod tests {
         );
 
         let hello_string = context.const_string(b"Hello, World!\n", false);
+        let g = module.add_global(hello_string.get_type(), Some(AddressSpace::from(0)), "sf");
+        // g.set_linkage(Linkage::Internal);
+        g.set_initializer(&g);
         let puts_fn = module.add_function("puts", puts_fn_type, None);
 
         builder.build_call(

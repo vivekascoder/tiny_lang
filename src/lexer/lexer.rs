@@ -19,7 +19,7 @@ impl Lexer {
     pub fn new(module: &str, s: &str) -> Self {
         Self {
             cur: 0,
-            row: 0,
+            row: 1,
             col: 0,
             module: module.to_string(),
             source: s.chars().collect(),
@@ -39,7 +39,12 @@ impl Lexer {
     }
 
     fn token(&self, type_: TokenType, pos: (usize, usize)) -> Token {
-        Token::new(type_, pos)
+        Token {
+            type_: type_,
+            pos: pos,
+            row: self.row,
+            col: self.col,
+        }
     }
 
     fn parse_keyword(&self, s: &str) -> Option<TokenType> {
