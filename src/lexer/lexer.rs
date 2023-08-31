@@ -47,6 +47,7 @@ impl Lexer {
             "let" => Some(TokenType::KeywordLet),
             "usize" => Some(TokenType::KeywordUsize),
             "isize" => Some(TokenType::KeywordIsize),
+            "i8" => Some(TokenType::KeywordI8),
             "fun" => Some(TokenType::KeywordFun),
             "return" => Some(TokenType::KeywordReturn),
             "if" => Some(TokenType::KeywordIf),
@@ -58,6 +59,7 @@ impl Lexer {
             "char" => Some(TokenType::KeywordChar),
             "while" => Some(TokenType::KeywordWhile),
             "str" => Some(TokenType::KeywordStr),
+            "extern" => Some(TokenType::KeywordExtern),
             _ => None,
         }
     }

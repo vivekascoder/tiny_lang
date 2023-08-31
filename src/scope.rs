@@ -8,6 +8,8 @@ pub struct ScopeStack {
     stack: Vec<Scope>,
 }
 
+// TODO: Make it generic so that we can store arbitrary value.
+// type Scope<V> = HasMpa<Rc<str>, V>
 impl ScopeStack {
     pub fn new() -> Self {
         Self { stack: vec![] }

@@ -1,10 +1,11 @@
-use crate::ast::{Condition, While};
+use crate::ast::{Condition, ExternFunction, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use anyhow::bail;
 use anyhow::Result;
 use either::Either;
 use inkwell::basic_block::BasicBlock;
 use inkwell::module::Linkage;
+use inkwell::types::BasicType;
 use inkwell::values::BasicMetadataValueEnum;
 use inkwell::values::IntValue;
 use inkwell::{
@@ -30,7 +31,7 @@ impl<'a> Value<'a> {
     }
 
     pub fn ty(&self) -> Type {
-        self.ty
+        self.ty.clone()
     }
 
     pub fn val(&self) -> BasicValueEnum<'a> {
@@ -129,8 +130,6 @@ impl LibcFunction {
 
 /// # Main codegen part
 /// https://llvm.org/docs/LangRef.html
-///
-/// ## How to store the let statements name, types of
 impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     pub fn new(ctx: &'ctx Context, program: Program, module_name: &str) -> Self {
         let ll = Self {
@@ -170,10 +169,10 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     fn init_builtins(&self) {
-        self.insert_extfunc(LibcFunction::printf(self.ctx, &self.module));
-        self.insert_extfunc(LibcFunction::malloc(self.ctx, &self.module));
-        self.insert_extfunc(LibcFunction::free(self.ctx, &self.module));
-        self.insert_extfunc(LibcFunction::memcpy(self.ctx, &self.module));
+        // self.insert_extfunc(LibcFunction::printf(self.ctx, &self.module));
+        // self.insert_extfunc(LibcFunction::malloc(self.ctx, &self.module));
+        // self.insert_extfunc(LibcFunction::free(self.ctx, &self.module));
+        // self.insert_extfunc(LibcFunction::memcpy(self.ctx, &self.module));
     }
 
     fn compile_infix_expr(&self, i: &Infix, l: &Expr, r: &Expr) -> Result<Value<'ctx>> {
@@ -186,8 +185,6 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         }
 
         match (l_val.val(), r_val.val()) {
-            // FIXME: `IntValue` can represent i64, u64, char, bool etc.
-            // TODO: do `icmp` when encountering comparison operators.
             (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => match i {
                 Infix::Plus => Ok(Value::new(
                     l_val.ty(),
@@ -249,22 +246,13 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         }
     }
 
-    // let a: usize = 535;
-    // -> %a = alloca i32
-    // -> store i32 535, i32* %a
-    //
-    // for nested infix:
-    // let some: usize = 343 + a;
-    // -> %some = alloca i32
-    // -> sum
-    // this function should return the name of the register that will have the value stored after doing all op.
     fn compile_expr(&self, expr: &Expr) -> Result<Value<'ctx>> {
         match &expr {
             Expr::Literal(l) => match l {
                 Literal::UnsignedInteger(v) => Ok(Value::new(
                     Type::UnsignedInteger,
                     self.ctx
-                        .i64_type()
+                        .i32_type()
                         .const_int(*v as u64, false)
                         .as_basic_value_enum(),
                 )),
@@ -309,29 +297,30 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 {
                     match ty_ {
                         Type::Bool => Ok(Value::new(
-                            *ty_,
+                            ty_.clone(),
                             self.builder.build_load(self.ctx.bool_type(), *ptr, ""),
                         )),
                         Type::Char => Ok(Value::new(
-                            *ty_,
+                            ty_.clone(),
                             self.builder.build_load(self.ctx.i8_type(), *ptr, ""),
                         )),
                         Type::UnsignedInteger => Ok(Value::new(
-                            *ty_,
-                            self.builder.build_load(self.ctx.i64_type(), *ptr, ""),
+                            ty_.clone(),
+                            self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
                         )),
                         Type::SignedInteger => Ok(Value::new(
-                            *ty_,
-                            self.builder.build_load(self.ctx.i64_type(), *ptr, ""),
+                            ty_.clone(),
+                            self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
                         )),
                         Type::String => Ok(Value::new(
-                            *ty_,
+                            ty_.clone(),
                             self.builder.build_load(
                                 self.ctx.i8_type().ptr_type(AddressSpace::default()),
                                 *ptr,
                                 "",
                             ),
                         )),
+                        _ => unimplemented!(),
                     }
                 } else {
                     panic!("ident doesn't exists.")
@@ -355,7 +344,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     {
                         Either::Left(val) => {
                             self.pop_current_scope();
-                            Ok(Value::new(v.1.return_type.unwrap(), val))
+                            Ok(Value::new(v.1.return_type.clone().unwrap(), val))
                         }
                         Either::Right(_) => {
                             bail!("got right");
@@ -395,26 +384,28 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .params
             .iter()
             .map(|(_i, t)| match t {
-                Type::UnsignedInteger => BasicMetadataTypeEnum::IntType(self.ctx.i64_type()),
-                Type::SignedInteger => BasicMetadataTypeEnum::IntType(self.ctx.i64_type()),
+                Type::UnsignedInteger => BasicMetadataTypeEnum::IntType(self.ctx.i32_type()),
+                Type::SignedInteger => BasicMetadataTypeEnum::IntType(self.ctx.i32_type()),
                 Type::Bool => BasicMetadataTypeEnum::IntType(self.ctx.bool_type()),
                 Type::Char => BasicMetadataTypeEnum::IntType(self.ctx.i8_type()),
                 Type::String => BasicMetadataTypeEnum::PointerType(
                     self.ctx.i8_type().ptr_type(AddressSpace::default()),
                 ),
+                _ => unimplemented!(),
             })
             .collect::<Vec<_>>();
         let fn_type = match &f.return_type {
             Some(v) => match v {
-                Type::UnsignedInteger => self.ctx.i64_type().fn_type(&params, false),
-                Type::SignedInteger => self.ctx.i64_type().fn_type(&params, false),
-                Type::Bool => self.ctx.i64_type().fn_type(&params, false),
+                Type::UnsignedInteger => self.ctx.i32_type().fn_type(&params, false),
+                Type::SignedInteger => self.ctx.i32_type().fn_type(&params, false),
+                Type::Bool => self.ctx.i32_type().fn_type(&params, false),
                 Type::Char => self.ctx.i8_type().fn_type(&params, false),
                 Type::String => self
                     .ctx
                     .i8_type()
                     .ptr_type(AddressSpace::default())
                     .fn_type(&params, false),
+                _ => unimplemented!(),
             },
             None => self.ctx.void_type().fn_type(&params, false),
         };
@@ -449,8 +440,8 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     fn compile_let(&self, i: &Ident, ty_: &Option<Type>, expr: &Expr) -> Result<()> {
         let val = self.compile_expr(expr)?;
         let ptr = match ty_.clone().unwrap() {
-            Type::UnsignedInteger => self.builder.build_alloca(self.ctx.i64_type(), ""),
-            Type::SignedInteger => self.builder.build_alloca(self.ctx.i64_type(), ""),
+            Type::UnsignedInteger => self.builder.build_alloca(self.ctx.i32_type(), ""),
+            Type::SignedInteger => self.builder.build_alloca(self.ctx.i32_type(), ""),
             Type::Bool => self.builder.build_alloca(self.ctx.bool_type(), ""),
             Type::Char => self.builder.build_alloca(self.ctx.i8_type(), ""),
             Type::String => {
@@ -460,13 +451,13 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     bail!("Type string with not `ArrayValue`");
                 }
             }
+            _ => unimplemented!(),
         };
         self.builder.build_store(ptr, val.val());
 
         let mut scopes = self.scopes.as_ref().borrow_mut();
         let c_scope = scopes.last_mut().unwrap();
         if c_scope.contains_key(&i.0) {
-            // TODO: Move to result & bail
             bail!("already declared in this scope.")
         }
         // TODO: remove unwrap
@@ -592,6 +583,61 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(())
     }
 
+    fn get_basic_metadata_type_enum(&self, ty: &Type) -> BasicMetadataTypeEnum<'ctx> {
+        match ty {
+            Type::UnsignedInteger => self.ctx.i32_type().into(),
+            Type::SignedInteger => self.ctx.i32_type().into(),
+            Type::Bool => self.ctx.bool_type().into(),
+            Type::Char => self.ctx.i8_type().into(),
+            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
+            Type::Ptr(p) => match p.as_ref() {
+                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
+                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                _ => unimplemented!(),
+            },
+        }
+    }
+
+    fn compile_external_fn(&self, f: &ExternFunction) -> Result<FunctionValue<'ctx>> {
+        let params = f
+            .params
+            .iter()
+            .map(|(_i, t)| self.get_basic_metadata_type_enum(t))
+            .collect::<Vec<_>>();
+        let fn_type = match &f.return_type {
+            Some(v) => match v {
+                Type::UnsignedInteger => self.ctx.i32_type().fn_type(&params, false),
+                Type::SignedInteger => self.ctx.i32_type().fn_type(&params, false),
+                Type::Bool => self.ctx.i32_type().fn_type(&params, false),
+                Type::Char => self.ctx.i8_type().fn_type(&params, false),
+                Type::String => self
+                    .ctx
+                    .i8_type()
+                    .ptr_type(AddressSpace::default())
+                    .fn_type(&params, false),
+                Type::Ptr(p) => match p.as_ref() {
+                    Type::UnsignedInteger => self
+                        .ctx
+                        .i32_type()
+                        .ptr_type(AddressSpace::from(0))
+                        .fn_type(&params, false),
+                    Type::Char => self
+                        .ctx
+                        .i8_type()
+                        .ptr_type(AddressSpace::from(0))
+                        .fn_type(&params, false),
+                    _ => unimplemented!(),
+                },
+            },
+            None => self.ctx.void_type().fn_type(&params, false),
+        };
+
+        let fn_val = self
+            .module
+            .add_function(&f.name, fn_type, Some(Linkage::External));
+        Ok(fn_val)
+    }
+
     fn compile_stmt(&self, stmt: &'f Statement) -> Result<()> {
         info!("COMPILER: compiling {:?}", &stmt);
         match &stmt {
@@ -613,13 +659,21 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             Statement::If(c) => self.compile_condition(c),
             Statement::While(while_) => self.compile_while(while_),
             Statement::Mutate(var, expr) => self.compile_mutate(var, expr),
+            Statement::ExterFunction(ex_fun) => {
+                let fn_ = self.compile_external_fn(ex_fun)?;
+                self.extern_fns
+                    .as_ref()
+                    .borrow_mut()
+                    .insert(Rc::clone(&ex_fun.name), fn_);
+                Ok(())
+            }
         }
     }
 
     pub fn compile(&'f self) -> Result<String> {
         for stmt in &self.program {
             match &stmt {
-                Statement::Function(_) => {}
+                Statement::Function(_) | Statement::ExterFunction(_) => {}
                 _ => {
                     bail!("top level statements can't be {:?}", &stmt);
                 }
@@ -640,7 +694,11 @@ pub fn generate(module_name: &str, program: Program) -> anyhow::Result<()> {
         .output()
         .expect("error while compiling using llc");
     if !res.status.success() {
-        bail!("can't run llc {:?}", "./a.ll");
+        bail!(
+            "can't run llc {:?}\n{}",
+            "./a.ll",
+            String::from_utf8(res.stderr)?
+        );
     }
 
     let res = std::process::Command::new("clang")
@@ -649,7 +707,11 @@ pub fn generate(module_name: &str, program: Program) -> anyhow::Result<()> {
         .expect("error while running clang");
 
     if !res.status.success() {
-        bail!("can't run clang {:?}", "./a.s");
+        bail!(
+            "can't run clang {:?}\n{}",
+            "./a.s",
+            String::from_utf8(res.stderr)?
+        );
     }
 
     Ok(())

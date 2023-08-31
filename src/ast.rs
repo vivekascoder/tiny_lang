@@ -29,6 +29,7 @@ pub enum Expr {
     Prefix(Prefix, Box<Expr>),
     Literal(Literal),
     Call(FunctionCall),
+    Ptr(Ident, Type),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -130,10 +131,18 @@ pub enum Statement {
     Let(Ident, Option<Type>, Expr),
     Mutate(Ident, Expr),
     Function(Function),
+    ExterFunction(ExternFunction),
     Return(Expr),
     If(Condition),
     Expr(Expr),
     While(While),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExternFunction {
+    pub name: Rc<str>,
+    pub params: Vec<(Ident, Type)>,
+    pub return_type: Option<Type>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -149,13 +158,19 @@ pub struct Condition {
     pub else_body: Option<BlockStatement>,
 }
 
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Type {
     UnsignedInteger,
     SignedInteger,
     Bool,
     Char,
     String,
+
+    /// function argument can be a pointer
+    /// fun do_something(a: *i8) => *i32 {
+    ///     ...
+    /// }
+    Ptr(Box<Type>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -220,67 +235,69 @@ pub enum TokenType {
     KeywordChar,
     KeywordWhile,
     KeywordStr,
+    KeywordExtern,
+    KeywordI8,
 
     // Symbol
     SymbolReturn,
 }
 
 /// implement the Debug trait for all the variants of TokenType
-impl Display for TokenType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            TokenType::EOF => write!(f, "EOF"),
-            TokenType::Identifier(s) => write!(f, "{}", s),
-            TokenType::Usize(i) => write!(f, "{}", i),
-            TokenType::Boolean(b) => write!(f, "{}", b),
-            TokenType::Colon => write!(f, ":"),
-            TokenType::SemiColon => write!(f, ";"),
-            TokenType::Equal => write!(f, "="),
-            TokenType::DoubleEqual => write!(f, "=="),
-            TokenType::Plus => write!(f, "+"),
-            TokenType::Minus => write!(f, "-"),
-            TokenType::Multiply => write!(f, "*"),
-            TokenType::Divide => write!(f, "/"),
-            TokenType::Mod => write!(f, "%"),
-            TokenType::NotEqual => write!(f, "!="),
-            TokenType::LessThan => write!(f, "<"),
-            TokenType::LessThanEqual => write!(f, "<="),
-            TokenType::GreaterThan => write!(f, ">"),
-            TokenType::GreaterThanEqual => write!(f, ">="),
-            TokenType::Bang => write!(f, "!"),
-            TokenType::LParen => write!(f, "("),
-            TokenType::RParen => write!(f, ")"),
-            TokenType::LBrace => write!(f, "{{"),
-            TokenType::RBrace => write!(f, "}}"),
-            TokenType::Comma => write!(f, ","),
-            TokenType::SQuote => write!(f, "'"),
-            TokenType::DQuote => write!(f, "\""),
-            TokenType::BSlash => write!(f, "\\"),
-            TokenType::NewLine => write!(f, "\n"),
-            TokenType::Tab => write!(f, "\t"),
-            TokenType::Space => write!(f, " "),
-            TokenType::KeywordLet => write!(f, "let"),
-            TokenType::KeywordUsize => write!(f, "usize"),
-            TokenType::KeywordIsize => write!(f, "isize"),
-            TokenType::KeywordBool => write!(f, "bool"),
-            TokenType::KeywordFun => write!(f, "fun"),
-            TokenType::KeywordReturn => write!(f, "return"),
-            TokenType::KeywordIf => write!(f, "if"),
-            TokenType::KeywordElse => write!(f, "else"),
-            TokenType::KeywordVoid => write!(f, "void"),
-            TokenType::KeywordChar => write!(f, "chat"),
-            TokenType::KeywordWhile => write!(f, "while"),
-            TokenType::SymbolReturn => write!(f, "=>"),
-            TokenType::String(s) => write!(f, "\"{}\"", s),
-            TokenType::LeftShift => write!(f, "<<"),
-            TokenType::RightShift => write!(f, ">>"),
-            TokenType::Pipe => write!(f, "|"),
-            TokenType::Carrot => write!(f, "^"),
-            TokenType::Ampersand => write!(f, "&"),
-            TokenType::KeywordStr => write!(f, "str"),
-        }
-    }
-}
+// impl Display for TokenType {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         match self {
+//             TokenType::EOF => write!(f, "EOF"),
+//             TokenType::Identifier(s) => write!(f, "{}", s),
+//             TokenType::Usize(i) => write!(f, "{}", i),
+//             TokenType::Boolean(b) => write!(f, "{}", b),
+//             TokenType::Colon => write!(f, ":"),
+//             TokenType::SemiColon => write!(f, ";"),
+//             TokenType::Equal => write!(f, "="),
+//             TokenType::DoubleEqual => write!(f, "=="),
+//             TokenType::Plus => write!(f, "+"),
+//             TokenType::Minus => write!(f, "-"),
+//             TokenType::Multiply => write!(f, "*"),
+//             TokenType::Divide => write!(f, "/"),
+//             TokenType::Mod => write!(f, "%"),
+//             TokenType::NotEqual => write!(f, "!="),
+//             TokenType::LessThan => write!(f, "<"),
+//             TokenType::LessThanEqual => write!(f, "<="),
+//             TokenType::GreaterThan => write!(f, ">"),
+//             TokenType::GreaterThanEqual => write!(f, ">="),
+//             TokenType::Bang => write!(f, "!"),
+//             TokenType::LParen => write!(f, "("),
+//             TokenType::RParen => write!(f, ")"),
+//             TokenType::LBrace => write!(f, "{{"),
+//             TokenType::RBrace => write!(f, "}}"),
+//             TokenType::Comma => write!(f, ","),
+//             TokenType::SQuote => write!(f, "'"),
+//             TokenType::DQuote => write!(f, "\""),
+//             TokenType::BSlash => write!(f, "\\"),
+//             TokenType::NewLine => write!(f, "\n"),
+//             TokenType::Tab => write!(f, "\t"),
+//             TokenType::Space => write!(f, " "),
+//             TokenType::KeywordLet => write!(f, "let"),
+//             TokenType::KeywordUsize => write!(f, "usize"),
+//             TokenType::KeywordIsize => write!(f, "isize"),
+//             TokenType::KeywordBool => write!(f, "bool"),
+//             TokenType::KeywordFun => write!(f, "fun"),
+//             TokenType::KeywordReturn => write!(f, "return"),
+//             TokenType::KeywordIf => write!(f, "if"),
+//             TokenType::KeywordElse => write!(f, "else"),
+//             TokenType::KeywordVoid => write!(f, "void"),
+//             TokenType::KeywordChar => write!(f, "chat"),
+//             TokenType::KeywordWhile => write!(f, "while"),
+//             TokenType::SymbolReturn => write!(f, "=>"),
+//             TokenType::String(s) => write!(f, "\"{}\"", s),
+//             TokenType::LeftShift => write!(f, "<<"),
+//             TokenType::RightShift => write!(f, ">>"),
+//             TokenType::Pipe => write!(f, "|"),
+//             TokenType::Carrot => write!(f, "^"),
+//             TokenType::Ampersand => write!(f, "&"),
+//             TokenType::KeywordStr => write!(f, "str"),
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {

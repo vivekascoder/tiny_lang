@@ -1,0 +1,12 @@
+
+/**
+# How should pointers work in tiny lang?
+
+- i8* will be a pointer type. it'll point to a memory location.
+
+**/
+
+
+fun main() => isize {
+    return 0;
+}

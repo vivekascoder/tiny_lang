@@ -17,6 +17,13 @@ fn test_let_w_type_statement_parsing() {
 }
 
 #[test]
+fn test_let_pointer_statement() {
+    setup();
+    let code = "let something: *isize = 90; ";
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
 fn test_multiple_let_statement_parsing() {
     setup();
     let code = r#"
