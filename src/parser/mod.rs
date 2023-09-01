@@ -492,10 +492,10 @@ impl Parser {
         }
         self.bump()?;
 
-        Ok(Statement::StructDef(Struct {
+        Ok(Statement::StructDef(Rc::new(Struct {
             name: var,
             fields: fields,
-        }))
+        })))
     }
 
     fn parse_statement(&mut self) -> Result<Statement> {

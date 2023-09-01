@@ -58,7 +58,7 @@ struct LLVMCodeGen<'ctx, 'f> {
     module: Module<'ctx>,
     scopes: Rc<RefCell<Vec<HashMap<Rc<str>, (PointerValue<'ctx>, Type)>>>>,
     fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f Function)>>>,
-    structs: Rc<RefCell<HashMap<Rc<str>, (StructType<'ctx>, &'f Struct)>>>,
+    structs: Rc<RefCell<HashMap<Rc<str>, (StructType<'ctx>, Rc<Struct>)>>>,
     extern_fns: Rc<RefCell<HashMap<Rc<str>, FunctionValue<'ctx>>>>,
     current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
 }
@@ -396,7 +396,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         }
                     }
                     Ok(Value {
-                        ty: Type::Struct(struct_.clone().clone()),
+                        ty: Type::Struct(Rc::clone(struct_)),
                         val: struct_type.const_named_struct(&values).into(),
                     })
                 } else {
@@ -684,7 +684,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(fn_val)
     }
 
-    fn compile_struct_def(&self, struct_: &'f Struct) -> Result<()> {
+    fn compile_struct_def(&self, struct_: &Rc<Struct>) -> Result<()> {
         let struct_val = self.ctx.struct_type(
             struct_
                 .fields
@@ -697,7 +697,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         self.structs
             .as_ref()
             .borrow_mut()
-            .insert(Rc::clone(&struct_.name), (struct_val, struct_));
+            .insert(Rc::clone(&struct_.name), (struct_val, Rc::clone(struct_)));
         Ok(())
     }
 
@@ -788,7 +788,7 @@ mod tests {
         context,
         passes::PassManagerSubType,
         types::{AsTypeRef, BasicMetadataTypeEnum, BasicType},
-        values::{AsValueRef, BasicMetadataValueEnum, BasicValue, PointerValue},
+        values::{AnyValue, AsValueRef, BasicMetadataValueEnum, BasicValue, PointerValue},
         AddressSpace, IntPredicate,
     };
 
@@ -913,6 +913,42 @@ mod tests {
         let l_val = builder.build_load(ctx.i64_type(), ptr, "").into_int_value();
 
         let temp1 = builder.build_int_sub(ctx.i64_type().const_int(23, true), l_val, "");
+
+        // Building a struct
+        /*
+        struct Student {
+            age: i32,
+            is_good: bool,
+            nested_struct: Data
+        }
+        struct Data {
+            sub: i32,
+        }
+        */
+
+        let data_struct = ctx.struct_type(&[ctx.i32_type().into()], false);
+        let student_struct = ctx.struct_type(
+            &[
+                ctx.i32_type().into(),
+                ctx.bool_type().into(),
+                data_struct.into(),
+            ],
+            false,
+        );
+
+        // construct a student struct.
+        let data = data_struct.const_named_struct(&[ctx.i32_type().const_int(32, false).into()]);
+        let student_instance = student_struct.const_named_struct(&[
+            ctx.i32_type().const_int(100, true).into(),
+            ctx.bool_type().const_int(0, false).into(),
+            data.into(),
+        ]);
+        println!(
+            "student type: {}",
+            student_instance.print_to_string().to_string()
+        );
+        // ..
+
         let v = builder.build_int_add(ctx.i64_type().const_int(234, true), temp1, "");
         builder.build_return(Some(&v));
         println!("{}", module.print_to_string().to_string());

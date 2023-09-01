@@ -137,7 +137,7 @@ pub enum Statement {
     If(Condition),
     Expr(Expr),
     While(While),
-    StructDef(Struct),
+    StructDef(Rc<Struct>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -173,7 +173,7 @@ pub enum Type {
     Bool,
     Char,
     String,
-    Struct(Struct),
+    Struct(Rc<Struct>),
 
     /// function argument can be a pointer
     /// fun do_something(a: *i8) => *i32 {
