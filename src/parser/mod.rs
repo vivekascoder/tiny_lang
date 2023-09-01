@@ -492,7 +492,7 @@ impl Parser {
         }
         self.bump()?;
 
-        Ok(Statement::Struct(Struct {
+        Ok(Statement::StructDef(Struct {
             name: var,
             fields: fields,
         }))

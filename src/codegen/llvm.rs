@@ -5,9 +5,9 @@ use anyhow::Result;
 use either::Either;
 use inkwell::basic_block::BasicBlock;
 use inkwell::module::Linkage;
-use inkwell::types::BasicType;
-use inkwell::values::BasicMetadataValueEnum;
+use inkwell::types::{BasicType, BasicTypeEnum, StructType};
 use inkwell::values::IntValue;
+use inkwell::values::{BasicMetadataValueEnum, StructValue};
 use inkwell::{
     builder::Builder,
     context::Context,
@@ -58,6 +58,7 @@ struct LLVMCodeGen<'ctx, 'f> {
     module: Module<'ctx>,
     scopes: Rc<RefCell<Vec<HashMap<Rc<str>, (PointerValue<'ctx>, Type)>>>>,
     fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f Function)>>>,
+    structs: Rc<RefCell<HashMap<Rc<str>, (StructType<'ctx>, &'f Struct)>>>,
     extern_fns: Rc<RefCell<HashMap<Rc<str>, FunctionValue<'ctx>>>>,
     current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
 }
@@ -139,6 +140,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             module: ctx.create_module(module_name),
             scopes: Rc::new(RefCell::new(vec![])),
             fns: Rc::new(RefCell::new(HashMap::new())),
+            structs: Rc::new(RefCell::new(HashMap::new())),
             extern_fns: Rc::new(RefCell::new(HashMap::new())),
             current_fn: Rc::new(RefCell::new(None)),
         };
@@ -372,6 +374,35 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             Expr::Prefix(p, expr) => {
                 unimplemented!("plz implement prefix expr compilation ser.")
             }
+            Expr::StructInstance(name, fields) => {
+                // FIXME: case where you didn't added some field.
+                let mut values: Vec<BasicValueEnum> = vec![];
+                if let Some((struct_type, struct_)) = self.structs.as_ref().borrow().get(name) {
+                    let fields_stack = struct_.fields.clone();
+                    for (field_name, field_expr) in fields {
+                        let expr_result = self.compile_expr(field_expr)?;
+                        values.push(expr_result.val);
+                        if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
+                            // fields.pop()
+                            if !(expr_result.ty() != v.1) {
+                                bail!("field {} is expected to have type {:?}.", v.0 .0, &v.1);
+                            }
+                        } else {
+                            bail!(
+                                "field {} is not defined in struct type {}",
+                                field_name.0,
+                                name
+                            );
+                        }
+                    }
+                    Ok(Value {
+                        ty: Type::Struct(struct_.clone().clone()),
+                        val: struct_type.const_named_struct(&values).into(),
+                    })
+                } else {
+                    bail!("struct {}, is not defined.", name);
+                }
+            }
             _ => unimplemented!(),
         }
     }
@@ -593,6 +624,22 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
                 _ => unimplemented!(),
             },
+            _ => unimplemented!(),
+        }
+    }
+    fn get_basic_type_enum(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
+        match ty {
+            Type::UnsignedInteger => self.ctx.i32_type().into(),
+            Type::SignedInteger => self.ctx.i32_type().into(),
+            Type::Bool => self.ctx.bool_type().into(),
+            Type::Char => self.ctx.i8_type().into(),
+            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
+            Type::Ptr(p) => match p.as_ref() {
+                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
+                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
         }
     }
 
@@ -626,6 +673,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         .fn_type(&params, false),
                     _ => unimplemented!(),
                 },
+                _ => unimplemented!(),
             },
             None => self.ctx.void_type().fn_type(&params, false),
         };
@@ -636,7 +684,20 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(fn_val)
     }
 
-    fn compile_struct(&self, struct_: &Struct) -> Result<()> {
+    fn compile_struct_def(&self, struct_: &'f Struct) -> Result<()> {
+        let struct_val = self.ctx.struct_type(
+            struct_
+                .fields
+                .iter()
+                .map(|(_, t)| self.get_basic_type_enum(t))
+                .collect::<Vec<_>>()
+                .as_slice(),
+            false,
+        );
+        self.structs
+            .as_ref()
+            .borrow_mut()
+            .insert(Rc::clone(&struct_.name), (struct_val, struct_));
         Ok(())
     }
 
@@ -669,7 +730,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     .insert(Rc::clone(&ex_fun.name), fn_);
                 Ok(())
             }
-            Statement::Struct(s) => self.compile_struct(s),
+            Statement::StructDef(s) => self.compile_struct_def(s),
         }
     }
 

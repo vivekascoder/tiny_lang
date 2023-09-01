@@ -30,6 +30,7 @@ pub enum Expr {
     Literal(Literal),
     Call(FunctionCall),
     Ptr(Ident, Type),
+    StructInstance(Rc<str>, Vec<(Ident, Expr)>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -136,7 +137,7 @@ pub enum Statement {
     If(Condition),
     Expr(Expr),
     While(While),
-    Struct(Struct),
+    StructDef(Struct),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -172,12 +173,36 @@ pub enum Type {
     Bool,
     Char,
     String,
+    Struct(Struct),
 
     /// function argument can be a pointer
     /// fun do_something(a: *i8) => *i32 {
     ///     ...
     /// }
     Ptr(Box<Type>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Value {
+    UnsignedInteger(u32),
+    SignedInteger(i32),
+    Bool(bool),
+    Char(char),
+    String(String),
+    // Ptr(Box<Type>),
+}
+
+impl Value {
+    pub fn is_type(&self, ty: &Type) -> bool {
+        match (ty, self) {
+            (Type::Bool, Value::Bool(_)) => true,
+            (Type::Char, Value::Char(_)) => true,
+            (Type::SignedInteger, Value::SignedInteger(_)) => true,
+            (Type::UnsignedInteger, Value::UnsignedInteger(_)) => true,
+            (Type::String, Value::String(_)) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
