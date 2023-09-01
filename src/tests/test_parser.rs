@@ -88,9 +88,9 @@ fn test_struct_instance_parsing() {
         is_dev: bool,
     };
     let var = Something {
-        name: 3434;
-        age: 2424;
-        is_dev: false;
+        name: 3434,
+        age: 2424,
+        is_dev: false,
     };
     "#;
     insta::assert_debug_snapshot!(Parser::new("", code).parse());

@@ -620,7 +620,9 @@ impl Parser {
             self.bump()?;
             let field_expr = self.parse_expression(Precedence::Lowest)?;
             fields.push((Ident(field_name), field_expr));
-            self.bump()?;
+            if !self.expect_next_token(&Rc::new(TokenType::Comma))? {
+                bail!("expected comma after field value in struct instance.");
+            }
         }
         self.bump()?;
         // if !self.next_token_is(&Rc::new(TokenType::SemiColon)) {
