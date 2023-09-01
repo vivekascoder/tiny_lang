@@ -328,6 +328,7 @@ impl Interpreter {
                 Type::String => {
                     panic!("string is not yet supported in ast interpreter.")
                 }
+                _ => unimplemented!("implement support for ptr type in ast interpreter."),
             },
         }
     }
@@ -443,6 +444,7 @@ impl Interpreter {
                     );
                 }
             },
+            _ => unimplemented!("add support for external function in ast interpreter."),
         }
     }
 

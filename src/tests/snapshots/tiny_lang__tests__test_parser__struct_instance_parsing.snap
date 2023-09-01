@@ -1,0 +1,74 @@
+---
+source: src/tests/test_parser.rs
+expression: "Parser::new(\"\", code).parse()"
+---
+Ok(
+    [
+        StructDef(
+            Struct {
+                name: "Something",
+                fields: [
+                    (
+                        Ident(
+                            "name",
+                        ),
+                        UnsignedInteger,
+                    ),
+                    (
+                        Ident(
+                            "age",
+                        ),
+                        UnsignedInteger,
+                    ),
+                    (
+                        Ident(
+                            "is_dev",
+                        ),
+                        Bool,
+                    ),
+                ],
+            },
+        ),
+        Let(
+            Ident(
+                "var",
+            ),
+            None,
+            StructInstance(
+                "Something",
+                [
+                    (
+                        Ident(
+                            "name",
+                        ),
+                        Literal(
+                            UnsignedInteger(
+                                3434,
+                            ),
+                        ),
+                    ),
+                    (
+                        Ident(
+                            "age",
+                        ),
+                        Literal(
+                            UnsignedInteger(
+                                2424,
+                            ),
+                        ),
+                    ),
+                    (
+                        Ident(
+                            "is_dev",
+                        ),
+                        Literal(
+                            Bool(
+                                false,
+                            ),
+                        ),
+                    ),
+                ],
+            ),
+        ),
+    ],
+)

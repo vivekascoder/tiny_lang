@@ -1,0 +1,8 @@
+/**
+This module offers libc function calls.
+**/
+
+
+extern fun malloc(a: *i8) => *i8;
+extern fun free(a: *i8) => void;
+extern fun memcpy(a: *i8, b: *i8, c: isize) => *i8;

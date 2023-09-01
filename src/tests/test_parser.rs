@@ -1,3 +1,4 @@
+use env_logger::init;
 use log::info;
 
 use crate::{parser::Parser, tests::setup};
@@ -13,6 +14,13 @@ fn test_let_statement_parsing() {
 fn test_let_w_type_statement_parsing() {
     setup();
     let code = "let something: isize = 454 + 3 * 4 - 35; ";
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
+fn test_let_pointer_statement() {
+    setup();
+    let code = "let something: *isize = 90; ";
     insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 
@@ -54,6 +62,37 @@ fn test_function_parsing() {
         }
         "#;
 
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
+fn test_struct_parsing() {
+    init();
+    let code = r#"
+    struct something {
+        name: str,
+        age: usize,
+        is_dev: bool,
+    };
+    "#;
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
+fn test_struct_instance_parsing() {
+    init();
+    let code = r#"
+    struct Something {
+        name: usize,
+        age: usize,
+        is_dev: bool,
+    };
+    let var = Something {
+        name: 3434,
+        age: 2424,
+        is_dev: false,
+    };
+    "#;
     insta::assert_debug_snapshot!(Parser::new("", code).parse());
 }
 

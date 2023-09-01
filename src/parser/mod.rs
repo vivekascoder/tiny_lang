@@ -8,8 +8,9 @@ use std::rc::Rc;
 
 pub struct Parser {
     lexer: Lexer,
-    current_token: Rc<TokenType>,
-    next_token: Rc<TokenType>,
+    // TODO: Use `Token` instead of `TokenType` to have row, col info.
+    current_token: Rc<Token>,
+    next_token: Rc<Token>,
     errors: Vec<anyhow::Error>,
 }
 
@@ -17,9 +18,19 @@ impl Parser {
     pub fn new(module: &str, source: &str) -> Self {
         let mut parser = Self {
             lexer: Lexer::new(module, source),
-            current_token: Rc::new(TokenType::EOF),
-            next_token: Rc::new(TokenType::EOF),
-            errors: vec![],
+            current_token: Rc::new(Token {
+                type_: TokenType::EOF,
+                pos: (0, 0),
+                row: 0,
+                col: 0,
+            }),
+            next_token: Rc::new(Token {
+                type_: TokenType::EOF,
+                pos: (0, 0),
+                row: 0,
+                col: 0,
+            }),
+            errors: vec![], // TODO: Obsolete or what
         };
         parser.bump().unwrap();
         parser.bump().unwrap();
@@ -40,7 +51,7 @@ impl Parser {
 
     fn bump(&mut self) -> Result<()> {
         self.current_token = Rc::clone(&self.next_token);
-        self.next_token = Rc::new(self.lexer.next()?.type_);
+        self.next_token = Rc::new(self.lexer.next()?);
         Ok(())
     }
 
@@ -63,16 +74,16 @@ impl Parser {
     }
 
     fn next_token_is(&self, token: &Rc<TokenType>) -> bool {
-        &self.next_token == token
+        &self.next_token.type_ == token.as_ref()
     }
     fn current_token_is(&self, token: &Rc<TokenType>) -> bool {
-        &self.current_token == token
+        &self.current_token.type_ == token.as_ref()
     }
 
     fn parse_let_statement(&mut self) -> Result<Statement> {
         // the current token is `let`
-        let name = match self.next_token.as_ref() {
-            TokenType::Identifier(name) => name.clone(),
+        let name = match self.next_token.as_ref().type_ {
+            TokenType::Identifier(ref name) => Rc::clone(name),
             _ => panic!("identifier isn't here."),
         };
         self.bump()?;
@@ -82,7 +93,7 @@ impl Parser {
         if self.next_token_is(&Rc::new(TokenType::Colon)) {
             self.bump()?;
 
-            type_ = Some(self.keyword_to_type(&self.next_token)?);
+            type_ = Some(self.parse_type()?);
             self.bump()?;
         }
 
@@ -100,8 +111,8 @@ impl Parser {
         if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
             bail!(
                 "Line: {}, Col: {}, `;` not found",
-                self.lexer.get_row(),
-                self.lexer.get_col()
+                self.current_token.row,
+                self.current_token.col
             )
         }
         self.bump()?;
@@ -124,7 +135,42 @@ impl Parser {
         }
     }
 
-    fn keyword_to_type(&self, tok: &TokenType) -> Result<Type> {
+    fn parse_type(&mut self) -> Result<Type> {
+        match self.next_token.as_ref().type_ {
+            TokenType::KeywordUsize => Ok(Type::UnsignedInteger),
+            TokenType::KeywordBool => Ok(Type::Bool),
+            TokenType::KeywordChar => Ok(Type::Char),
+            TokenType::KeywordIsize => Ok(Type::SignedInteger),
+            TokenType::KeywordStr => Ok(Type::String),
+            TokenType::KeywordI8 => Ok(Type::Char),
+            TokenType::Multiply => {
+                // parse pointer type.
+                self.bump()?;
+                match self.next_token.as_ref().type_ {
+                    TokenType::KeywordBool
+                    | TokenType::KeywordChar
+                    | TokenType::KeywordIsize
+                    | TokenType::KeywordUsize
+                    | TokenType::KeywordI8
+                    | TokenType::KeywordStr => {
+                        let typee = self.parse_type()?;
+                        Ok(Type::Ptr(Box::new(typee)))
+                    }
+                    _ => {
+                        bail!("not valid pointer type.");
+                    }
+                }
+            }
+            _ => {
+                bail!(
+                    "{:?} is not a valid parameter type.",
+                    self.next_token.as_ref()
+                );
+            }
+        }
+    }
+
+    fn keyword_to_type(&mut self, tok: &TokenType) -> Result<Type> {
         match tok {
             TokenType::KeywordUsize => Ok(Type::UnsignedInteger),
             TokenType::KeywordBool => Ok(Type::Bool),
@@ -139,9 +185,15 @@ impl Parser {
 
     fn parse_function_statement(&mut self) -> Result<Statement> {
         // current token is `fun`.
+        let mut is_extern = false;
 
-        let fn_name = match self.next_token.as_ref() {
-            TokenType::Identifier(n) => Rc::clone(&n),
+        if self.current_token_is(&Rc::new(TokenType::KeywordExtern)) {
+            is_extern = true;
+            self.bump()?;
+        }
+
+        let fn_name = match self.next_token.as_ref().type_ {
+            TokenType::Identifier(ref n) => Rc::clone(&n),
             _ => {
                 bail!(
                     "next token to parse function should be Identifier, got {:?} instead",
@@ -170,7 +222,7 @@ impl Parser {
         // Start parsing parameters
         while !self.current_token_is(&Rc::new(TokenType::RParen)) {
             // parse ident-> : ->type
-            let param_name = match self.next_token.as_ref() {
+            let param_name = match self.next_token.as_ref().type_ {
                 TokenType::Identifier(ref n) => Rc::clone(n),
                 TokenType::RParen => {
                     self.bump()?;
@@ -190,7 +242,7 @@ impl Parser {
             }
             self.bump()?;
 
-            let type_ = self.keyword_to_type(&self.next_token)?;
+            let type_ = self.parse_type()?;
             self.bump()?;
 
             if !(self.next_token_is(&Rc::new(TokenType::Comma))
@@ -211,24 +263,38 @@ impl Parser {
         let mut return_type: Option<Type> = None;
         info!("Next token is: {:?}", self.next_token);
         if !self.next_token_is(&Rc::new(TokenType::KeywordVoid)) {
-            return_type = Some(self.keyword_to_type(&self.next_token)?);
+            return_type = Some(self.parse_type()?);
         }
         self.bump()?;
+        if is_extern {
+            if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
+                bail!(
+                    "expected `;` while parsing external function got {:?} instead",
+                    self.current_token
+                );
+            }
+            self.bump()?;
+            Ok(Statement::ExterFunction(ExternFunction {
+                name: fn_name,
+                params: params,
+                return_type: return_type,
+            }))
+        } else {
+            if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
+                bail!("next token is not `{{`");
+            }
 
-        if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
-            bail!("next token is not `{{`");
+            self.bump()?;
+
+            let body = self.parse_block_statement()?;
+
+            Ok(Statement::Function(Function {
+                name: fn_name,
+                params: params,
+                return_type: return_type,
+                body: body,
+            }))
         }
-
-        self.bump()?;
-
-        let body = self.parse_block_statement()?;
-
-        Ok(Statement::Function(Function {
-            name: fn_name,
-            params: params,
-            return_type: return_type,
-            body: body,
-        }))
     }
 
     fn parse_block_statement(&mut self) -> Result<BlockStatement> {
@@ -311,7 +377,7 @@ impl Parser {
 
     fn parse_while_statement(&mut self) -> Result<Statement> {
         if !self.expect_next_token(&Rc::new(TokenType::LParen))? {
-            bail!("expected `(` but got {:>} instead", self.next_token);
+            bail!("expected `(` but got {:?} instead", self.next_token);
         }
         self.bump()?;
 
@@ -344,7 +410,7 @@ impl Parser {
     }
 
     fn parse_assign_or_expr(&mut self) -> Result<Statement> {
-        let var = match self.current_token.as_ref() {
+        let var = match self.current_token.as_ref().type_ {
             TokenType::Identifier(ref i) => Rc::clone(i),
             _ => {
                 bail!("{:?} is not identifier", self.current_token);
@@ -369,15 +435,79 @@ impl Parser {
         }
     }
 
+    fn parse_struct(&mut self) -> Result<Statement> {
+        let var = match self.next_token.as_ref().type_ {
+            TokenType::Identifier(ref i) => Rc::clone(i),
+            _ => {
+                bail!(
+                    "expected struct name, got {:?} instead.",
+                    self.current_token
+                );
+            }
+        };
+        self.bump()?;
+
+        if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
+            bail!(
+                "expected `{{` after struct name got {:?} instead.",
+                self.current_token.type_
+            );
+        }
+
+        let mut fields: Vec<(Ident, Type)> = vec![];
+
+        while !self.next_token_is(&Rc::new(TokenType::RBrace)) {
+            let f_name = match self.next_token.type_ {
+                TokenType::Identifier(ref i) => Rc::clone(i),
+                _ => {
+                    bail!(
+                        "expected field name got {:?} instead",
+                        self.next_token.type_
+                    );
+                }
+            };
+            self.bump()?;
+
+            if !self.expect_next_token(&Rc::new(TokenType::Colon))? {
+                bail!(
+                    "expected `:` after struct field name got {:?} instead",
+                    self.current_token.type_
+                );
+            }
+            let type_ = self.parse_type()?;
+            fields.push((Ident(f_name), type_));
+            self.bump()?;
+
+            if !self.expect_next_token(&Rc::new(TokenType::Comma))? {
+                bail!(
+                    "expected `,` after field type got {:?} instead",
+                    self.current_token.type_
+                );
+            }
+        }
+
+        self.bump()?;
+        if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
+            bail!("expected `;` after `}}` in struct def.");
+        }
+        self.bump()?;
+
+        Ok(Statement::StructDef(Rc::new(Struct {
+            name: var,
+            fields: fields,
+        })))
+    }
+
     fn parse_statement(&mut self) -> Result<Statement> {
         info!("Current Token: {:?}", self.current_token);
-        Ok(match self.current_token.as_ref() {
+        Ok(match self.current_token.as_ref().type_ {
             TokenType::KeywordLet => self.parse_let_statement()?,
             TokenType::KeywordIf => self.parse_if_statement()?,
-            TokenType::KeywordFun => self.parse_function_statement()?,
+            TokenType::KeywordFun | TokenType::KeywordExtern => self.parse_function_statement()?,
             TokenType::KeywordWhile => self.parse_while_statement()?,
             TokenType::KeywordReturn => self.parse_return_statement()?,
             TokenType::Identifier(_) => self.parse_assign_or_expr()?,
+            TokenType::KeywordStruct => self.parse_struct()?,
             _ => self.parse_expression_statement()?,
         })
     }
@@ -400,11 +530,11 @@ impl Parser {
     }
 
     fn current_token_precedence(&self) -> Precedence {
-        Self::token_to_precedence(&self.current_token)
+        Self::token_to_precedence(&self.current_token.type_)
     }
 
     fn next_token_precedence(&self) -> Precedence {
-        Self::token_to_precedence(&self.next_token)
+        Self::token_to_precedence(&self.next_token.type_)
     }
 
     fn parse_fn_params(&mut self) -> Result<Vec<Expr>> {
@@ -439,7 +569,7 @@ impl Parser {
     }
 
     fn parse_infix_operator(&mut self) -> Result<Infix> {
-        Ok(match self.current_token.as_ref() {
+        Ok(match self.current_token.as_ref().type_ {
             TokenType::Plus => Infix::Plus,
             TokenType::Minus => Infix::Minus,
             TokenType::Divide => Infix::Divide,
@@ -461,17 +591,58 @@ impl Parser {
         })
     }
 
+    fn parse_expr_ident(&mut self) -> Result<Expr> {
+        let i = match self.current_token.type_ {
+            TokenType::Identifier(ref i) => Rc::clone(i),
+            _ => {
+                bail!("not");
+            }
+        };
+        // if next token is not `{` then it's a normal ident.
+        if !self.next_token_is(&Rc::new(TokenType::LBrace)) {
+            return Ok(Expr::Ident(Ident(i)));
+        }
+
+        // Otherwise it'll be a sturct instance.
+        let mut fields: Vec<(Ident, Expr)> = vec![];
+        self.bump()?;
+        while !self.next_token_is(&Rc::new(TokenType::RBrace)) {
+            let field_name = match self.next_token.type_ {
+                TokenType::Identifier(ref i) => Rc::clone(i),
+                _ => {
+                    bail!("expected identifier while parsing struct instance");
+                }
+            };
+            self.bump()?;
+            if !self.expect_next_token(&Rc::new(TokenType::Colon))? {
+                bail!("expected `:` after field name while parsing struct instance.");
+            }
+            self.bump()?;
+            let field_expr = self.parse_expression(Precedence::Lowest)?;
+            fields.push((Ident(field_name), field_expr));
+            if !self.expect_next_token(&Rc::new(TokenType::Comma))? {
+                bail!("expected comma after field value in struct instance.");
+            }
+        }
+        self.bump()?;
+        // if !self.next_token_is(&Rc::new(TokenType::SemiColon)) {
+        //     bail!("expected semicolon");
+        // }
+        // self.bump()?;
+        Ok(Expr::StructInstance(i, fields))
+    }
+
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
         // Parse the left
-        let mut left = match self.current_token.as_ref() {
-            TokenType::Usize(val) => Expr::Literal(Literal::UnsignedInteger(*val)),
-            TokenType::Boolean(val) => Expr::Literal(Literal::Bool(*val)),
-            TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
-            TokenType::String(s) => Expr::Literal(Literal::String(Rc::clone(s))),
+        let mut left = match self.current_token.as_ref().type_ {
+            TokenType::Usize(ref val) => Expr::Literal(Literal::UnsignedInteger(*val)),
+            TokenType::Boolean(ref val) => Expr::Literal(Literal::Bool(*val)),
+            TokenType::Identifier(_) => self.parse_expr_ident()?,
+            TokenType::String(ref s) => Expr::Literal(Literal::String(Rc::clone(s))),
             TokenType::SQuote => {
                 use TokenType::*;
                 // Parse character.
-                let char_val = match self.next_token.as_ref() {
+                let char_val = match self.next_token.as_ref().type_ {
                     Identifier(ref i) => {
                         if i.len() != 1 {
                             bail!("Character should be of length 1");
@@ -503,7 +674,7 @@ impl Parser {
                 // Parse prefix expression.
 
                 // Operator
-                let prefix = match self.current_token.as_ref() {
+                let prefix = match self.current_token.as_ref().type_ {
                     TokenType::Bang => Prefix::Not,
                     TokenType::Plus => Prefix::Plus,
                     TokenType::Minus => Prefix::Minus,
@@ -519,7 +690,21 @@ impl Parser {
                     Err(e) => bail!("error while parsing expression for prefix with {:#?}", e),
                 }
             }
+            // FIXME: How to handle this?
+            // TokenType::Multiply => {
+            //     let ident = match self.next_token.as_ref() {
+            //         TokenType::Identifier(i) => Rc::clone(i),
+            //         _ => {
+            //             bail!(
+            //                 "expected identifier after * got {:?} instead.",
+            //                 self.next_token
+            //             );
+            //         }
+            //     };
 
+            //     // FIXME: return without type and then have some way to infer types.
+            //     Expr::Ptr(Ident(ident), Type::Bool)
+            // }
             _ => {
                 bail!(
                     "no prefix parse function found for {:?}",
@@ -537,7 +722,7 @@ impl Parser {
                 "next token while parsing expression right -> {:?}",
                 self.next_token
             );
-            match self.next_token.as_ref() {
+            match self.next_token.as_ref().type_ {
                 TokenType::Plus
                 | TokenType::Minus
                 | TokenType::Divide

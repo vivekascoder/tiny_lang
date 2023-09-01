@@ -9,6 +9,8 @@ expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
             0,
             1,
         ),
+        row: 1,
+        col: 1,
     },
     Token {
         type_: NewLine,
@@ -16,6 +18,8 @@ expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
             1,
             3,
         ),
+        row: 1,
+        col: 3,
     },
     Token {
         type_: SQuote,
@@ -23,5 +27,7 @@ expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
             3,
             4,
         ),
+        row: 1,
+        col: 4,
     },
 ]
