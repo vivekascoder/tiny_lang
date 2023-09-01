@@ -383,8 +383,13 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         let expr_result = self.compile_expr(field_expr)?;
                         values.push(expr_result.val);
                         if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
-                            if !(expr_result.ty() != v.1) {
-                                bail!("field {} is expected to have type {:?}.", v.0 .0, &v.1);
+                            if expr_result.ty() != v.1 {
+                                bail!(
+                                    "field {} is expected to have type {:?}, got {:?} instead.",
+                                    v.0 .0,
+                                    &v.1,
+                                    expr_result.ty()
+                                );
                             }
                         } else {
                             bail!(
@@ -395,7 +400,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         }
                     }
                     Ok(Value {
-                        ty: Type::Struct(Rc::clone(struct_)),
+                        ty: Type::Struct(Rc::clone(&struct_.name)),
                         val: struct_type.const_named_struct(&values).into(),
                     })
                 } else {
@@ -477,6 +482,14 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     self.builder.build_alloca(av.get_type(), "")
                 } else {
                     bail!("Type string with not `ArrayValue`");
+                }
+            }
+            Type::Struct(ref name) => {
+                if let Some((struct_type, _)) = self.structs.as_ref().borrow().get(name) {
+                    self.builder
+                        .build_alloca(struct_type.as_basic_type_enum(), "")
+                } else {
+                    bail!("struct {}, is not defined.", name);
                 }
             }
             _ => unimplemented!(),
@@ -693,6 +706,26 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 .as_slice(),
             false,
         );
+        self.ctx.struct_type(
+            &struct_
+                .as_ref()
+                .fields
+                .iter()
+                .map(|(_, ty)| self.get_basic_type_enum(ty))
+                .collect::<Vec<_>>(),
+            false,
+        );
+        // let type_alias = self.ctx.opaque_struct_type(&struct_.name);
+        // type_alias.set_body(
+        //     &struct_
+        //         .as_ref()
+        //         .fields
+        //         .iter()
+        //         .map(|(_, ty)| self.get_basic_type_enum(ty))
+        //         .collect::<Vec<_>>(),
+        //     false,
+        // );
+
         self.structs
             .as_ref()
             .borrow_mut()
@@ -736,7 +769,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     pub fn compile(&'f self) -> Result<String> {
         for stmt in &self.program {
             match &stmt {
-                Statement::Function(_) | Statement::ExterFunction(_) => {}
+                Statement::Function(_) | Statement::ExterFunction(_) | Statement::StructDef(_) => {}
                 _ => {
                     bail!("top level statements can't be {:?}", &stmt);
                 }
@@ -946,6 +979,8 @@ mod tests {
             "student type: {}",
             student_instance.print_to_string().to_string()
         );
+        let struct_ptr = builder.build_alloca(student_struct, "");
+        builder.build_store(struct_ptr, student_instance);
         // ..
 
         let v = builder.build_int_add(ctx.i64_type().const_int(234, true), temp1, "");

@@ -173,7 +173,8 @@ pub enum Type {
     Bool,
     Char,
     String,
-    Struct(Rc<Struct>),
+    // Struct(Rc<Struct>),
+    Struct(Rc<str>),
 
     /// function argument can be a pointer
     /// fun do_something(a: *i8) => *i32 {

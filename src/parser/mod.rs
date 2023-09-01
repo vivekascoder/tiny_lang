@@ -161,6 +161,7 @@ impl Parser {
                     }
                 }
             }
+            TokenType::Identifier(ref i) => Ok(Type::Struct(Rc::clone(i))),
             _ => {
                 bail!(
                     "{:?} is not a valid parameter type.",
@@ -625,10 +626,6 @@ impl Parser {
             }
         }
         self.bump()?;
-        // if !self.next_token_is(&Rc::new(TokenType::SemiColon)) {
-        //     bail!("expected semicolon");
-        // }
-        // self.bump()?;
         Ok(Expr::StructInstance(i, fields))
     }
 

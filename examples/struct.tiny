@@ -1,0 +1,12 @@
+struct Student {
+    age: usize,
+    class: usize,
+};
+
+fun main() => usize {
+    let s1: Student = Student {
+        age: 242,
+        class: 2,
+    };
+    return 0;
+}
