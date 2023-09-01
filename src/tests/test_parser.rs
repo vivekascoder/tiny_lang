@@ -79,6 +79,24 @@ fn test_struct_parsing() {
 }
 
 #[test]
+fn test_struct_instance_parsing() {
+    init();
+    let code = r#"
+    struct Something {
+        name: usize,
+        age: usize,
+        is_dev: bool,
+    };
+    let var = Something {
+        name: 3434;
+        age: 2424;
+        is_dev: false;
+    };
+    "#;
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
 fn test_if_statement_parsing() {
     let code = r#"
         if (54 > 34) {

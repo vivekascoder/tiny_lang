@@ -383,7 +383,6 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         let expr_result = self.compile_expr(field_expr)?;
                         values.push(expr_result.val);
                         if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
-                            // fields.pop()
                             if !(expr_result.ty() != v.1) {
                                 bail!("field {} is expected to have type {:?}.", v.0 .0, &v.1);
                             }

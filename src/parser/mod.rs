@@ -591,12 +591,51 @@ impl Parser {
         })
     }
 
+    fn parse_expr_ident(&mut self) -> Result<Expr> {
+        let i = match self.current_token.type_ {
+            TokenType::Identifier(ref i) => Rc::clone(i),
+            _ => {
+                bail!("not");
+            }
+        };
+        // if next token is not `{` then it's a normal ident.
+        if !self.next_token_is(&Rc::new(TokenType::LBrace)) {
+            return Ok(Expr::Ident(Ident(i)));
+        }
+
+        // Otherwise it'll be a sturct instance.
+        let mut fields: Vec<(Ident, Expr)> = vec![];
+        self.bump()?;
+        while !self.next_token_is(&Rc::new(TokenType::RBrace)) {
+            let field_name = match self.next_token.type_ {
+                TokenType::Identifier(ref i) => Rc::clone(i),
+                _ => {
+                    bail!("expected identifier while parsing struct instance");
+                }
+            };
+            self.bump()?;
+            if !self.expect_next_token(&Rc::new(TokenType::Colon))? {
+                bail!("expected `:` after field name while parsing struct instance.");
+            }
+            self.bump()?;
+            let field_expr = self.parse_expression(Precedence::Lowest)?;
+            fields.push((Ident(field_name), field_expr));
+            self.bump()?;
+        }
+        self.bump()?;
+        // if !self.next_token_is(&Rc::new(TokenType::SemiColon)) {
+        //     bail!("expected semicolon");
+        // }
+        // self.bump()?;
+        Ok(Expr::StructInstance(i, fields))
+    }
+
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
         // Parse the left
         let mut left = match self.current_token.as_ref().type_ {
             TokenType::Usize(ref val) => Expr::Literal(Literal::UnsignedInteger(*val)),
             TokenType::Boolean(ref val) => Expr::Literal(Literal::Bool(*val)),
-            TokenType::Identifier(ref i) => Expr::Ident(Ident(i.clone())),
+            TokenType::Identifier(_) => self.parse_expr_ident()?,
             TokenType::String(ref s) => Expr::Literal(Literal::String(Rc::clone(s))),
             TokenType::SQuote => {
                 use TokenType::*;
