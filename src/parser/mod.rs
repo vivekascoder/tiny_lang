@@ -1,7 +1,8 @@
 pub mod chumsky_parser;
 
-use crate::ast::*;
+use crate::error::ParserError;
 use crate::lexer::lexer::Lexer;
+use crate::{ast::*, error::TinyError};
 use anyhow::{anyhow, bail, Result};
 use log::info;
 use std::rc::Rc;
@@ -110,10 +111,13 @@ impl Parser {
 
         if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
             bail!(
-                "Line: {}, Col: {}, `;` not found",
-                self.current_token.row,
-                self.current_token.col
-            )
+                "{}",
+                TinyError::new_parser_error(
+                    Rc::clone(&self.current_token),
+                    self.module().into(),
+                    "expected semicolon".into()
+                )
+            );
         }
         self.bump()?;
 
@@ -780,7 +784,7 @@ impl Parser {
                     program.push(stmt);
                 }
                 Err(e) => {
-                    bail!("That's it: {:?}", e)
+                    bail!("{}", e)
                 }
             }
         }

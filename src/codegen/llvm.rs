@@ -1,5 +1,6 @@
-use crate::ast::{Condition, ExternFunction, Struct, While};
+use crate::ast::{Condition, ExternFunction, FunctionCall, Struct, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
+use crate::error::{ParserError, TinyError};
 use anyhow::bail;
 use anyhow::Result;
 use either::Either;
@@ -288,126 +289,136 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     ))
                 }
             },
-            Expr::Ident(i) => {
-                if let Some((ptr, ty_)) = self
-                    .scopes
-                    .as_ref()
-                    .borrow()
-                    .iter()
-                    .rev()
-                    .find_map(|s| s.get(&i.0))
-                {
-                    match ty_ {
-                        Type::Bool => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.bool_type(), *ptr, ""),
-                        )),
-                        Type::Char => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.i8_type(), *ptr, ""),
-                        )),
-                        Type::UnsignedInteger => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
-                        )),
-                        Type::SignedInteger => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
-                        )),
-                        Type::String => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(
-                                self.ctx.i8_type().ptr_type(AddressSpace::default()),
-                                *ptr,
-                                "",
-                            ),
-                        )),
-                        _ => unimplemented!(),
-                    }
-                } else {
-                    panic!("ident doesn't exists.")
-                }
-            }
-
+            Expr::Ident(i) => Ok(self.compile_expr_ident(i)?),
             Expr::Infix(i, l, r) => Ok(self.compile_infix_expr(i, l, r)?),
-
-            Expr::Call(fn_call) => {
-                let llvm_type_args = fn_call
-                    .parameters
-                    .iter()
-                    .map(|a| self.compile_expr(a).unwrap().val().into())
-                    .collect::<Vec<BasicMetadataValueEnum>>();
-                if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
-                    self.push_scope();
-                    match self
-                        .builder
-                        .build_call(v.0, &llvm_type_args, "")
-                        .try_as_basic_value()
-                    {
-                        Either::Left(val) => {
-                            self.pop_current_scope();
-                            Ok(Value::new(v.1.return_type.clone().unwrap(), val))
-                        }
-                        Either::Right(_) => {
-                            bail!("got right");
-                        }
-                    }
-                } else {
-                    if let Some(f) = self.extern_fns.as_ref().borrow().get(fn_call.name.as_ref()) {
-                        // let gep = self.builder.build_gep(self.ctx.i8_type().array_type(), ptr, ordered_indexes, name)
-                        self.builder.build_call(
-                            *f,
-                            &[
-                                // self.builder
-                                // .build_gep(pointee_ty, ptr, ordered_indexes, name),
-                                *llvm_type_args.first().unwrap(),
-                            ],
-                            "",
-                        );
-                        // Ok(self.ctx.i8_type().const_int(0, false).into())
-                        unimplemented!("plz implement extern fn call.")
-                    } else {
-                        bail!("function isn't declared yet.");
-                    }
-                }
-            }
+            Expr::Call(fn_call) => Ok(self.compile_expr_call(fn_call)?),
             Expr::Prefix(p, expr) => {
                 unimplemented!("plz implement prefix expr compilation ser.")
             }
             Expr::StructInstance(name, fields) => {
-                // FIXME: case where you didn't added some field.
-                let mut values: Vec<BasicValueEnum> = vec![];
-                if let Some((struct_type, struct_)) = self.structs.as_ref().borrow().get(name) {
-                    let fields_stack = struct_.fields.clone();
-                    for (field_name, field_expr) in fields {
-                        let expr_result = self.compile_expr(field_expr)?;
-                        values.push(expr_result.val);
-                        if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
-                            if expr_result.ty() != v.1 {
-                                bail!(
-                                    "field {} is expected to have type {:?}, got {:?} instead.",
-                                    v.0 .0,
-                                    &v.1,
-                                    expr_result.ty()
-                                );
-                            }
-                        } else {
-                            bail!(
-                                "field {} is not defined in struct type {}",
-                                field_name.0,
-                                name
-                            );
-                        }
-                    }
-                    Ok(Value {
-                        ty: Type::Struct(Rc::clone(&struct_.name)),
-                        val: struct_type.const_named_struct(&values).into(),
-                    })
-                } else {
-                    bail!("struct {}, is not defined.", name);
-                }
+                Ok(self.compile_expr_struct_instance(name, fields)?)
             }
             _ => unimplemented!(),
+        }
+    }
+
+    fn compile_expr_ident(&self, i: &Ident) -> Result<Value<'ctx>> {
+        if let Some((ptr, ty_)) = self
+            .scopes
+            .as_ref()
+            .borrow()
+            .iter()
+            .rev()
+            .find_map(|s| s.get(&i.0))
+        {
+            match ty_ {
+                Type::Bool => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.bool_type(), *ptr, ""),
+                )),
+                Type::Char => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.i8_type(), *ptr, ""),
+                )),
+                Type::UnsignedInteger => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
+                )),
+                Type::SignedInteger => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
+                )),
+                Type::String => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(
+                        self.ctx.i8_type().ptr_type(AddressSpace::default()),
+                        *ptr,
+                        "",
+                    ),
+                )),
+                _ => unimplemented!(),
+            }
+        } else {
+            panic!("ident doesn't exists.")
+        }
+    }
+
+    fn compile_expr_call(&self, fn_call: &FunctionCall) -> Result<Value<'ctx>> {
+        let llvm_type_args = fn_call
+            .parameters
+            .iter()
+            .map(|a| self.compile_expr(a).unwrap().val().into())
+            .collect::<Vec<BasicMetadataValueEnum>>();
+        if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+            self.push_scope();
+            match self
+                .builder
+                .build_call(v.0, &llvm_type_args, "")
+                .try_as_basic_value()
+            {
+                Either::Left(val) => {
+                    self.pop_current_scope();
+                    Ok(Value::new(v.1.return_type.clone().unwrap(), val))
+                }
+                Either::Right(_) => {
+                    bail!("got right");
+                }
+            }
+        } else {
+            if let Some(f) = self.extern_fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+                // let gep = self.builder.build_gep(self.ctx.i8_type().array_type(), ptr, ordered_indexes, name)
+                self.builder.build_call(
+                    *f,
+                    &[
+                        // self.builder
+                        // .build_gep(pointee_ty, ptr, ordered_indexes, name),
+                        *llvm_type_args.first().unwrap(),
+                    ],
+                    "",
+                );
+                // Ok(self.ctx.i8_type().const_int(0, false).into())
+                unimplemented!("plz implement extern fn call.")
+            } else {
+                bail!("function isn't declared yet.");
+            }
+        }
+    }
+
+    fn compile_expr_struct_instance(
+        &self,
+        name: &Rc<str>,
+        fields: &Vec<(Ident, Expr)>,
+    ) -> Result<Value<'ctx>> {
+        // FIXME: case where you didn't added some field.
+        let mut values: Vec<BasicValueEnum> = vec![];
+        if let Some((struct_type, struct_)) = self.structs.as_ref().borrow().get(name) {
+            let fields_stack = struct_.fields.clone();
+            for (field_name, field_expr) in fields {
+                let expr_result = self.compile_expr(field_expr)?;
+                values.push(expr_result.val);
+                if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
+                    if expr_result.ty() != v.1 {
+                        bail!(
+                            "field {} is expected to have type {:?}, got {:?} instead.",
+                            v.0 .0,
+                            &v.1,
+                            expr_result.ty()
+                        );
+                    }
+                } else {
+                    bail!(
+                        "field {} is not defined in struct type {}",
+                        field_name.0,
+                        name
+                    );
+                }
+            }
+            Ok(Value {
+                ty: Type::Struct(Rc::clone(&struct_.name)),
+                val: struct_type.const_named_struct(&values).into(),
+            })
+        } else {
+            bail!("struct {}, is not defined.", name);
         }
     }
 
