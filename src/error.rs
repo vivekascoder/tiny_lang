@@ -1,10 +1,10 @@
-use std::{fmt::Display, rc::Rc};
-
 use crate::ast::Token;
+use std::{fmt::Display, rc::Rc};
 
 #[derive(Debug)]
 pub enum TinyError {
     ParserError(ParserError),
+    CompilationError(CompilationError),
 }
 
 impl TinyError {
@@ -15,11 +15,23 @@ impl TinyError {
             info: info,
         })
     }
+    pub fn new_compilation_error(file_path: Rc<str>, info: String) -> Self {
+        TinyError::CompilationError(CompilationError {
+            file_path: file_path,
+            info: info,
+        })
+    }
 }
 
 #[derive(Debug)]
 pub struct ParserError {
     token: Rc<Token>,
+    file_path: Rc<str>,
+    info: String,
+}
+
+#[derive(Debug)]
+pub struct CompilationError {
     file_path: Rc<str>,
     info: String,
 }
@@ -35,6 +47,9 @@ impl Display for TinyError {
                 t.token.as_ref().col,
                 t.info,
             ),
+            TinyError::CompilationError(c) => {
+                write!(f, "CompilationError in {}: {}", c.file_path, c.info)
+            }
         }
     }
 }

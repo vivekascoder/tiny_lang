@@ -1,0 +1,11 @@
+/**
+* String implementation in tiny lang.
+**/
+
+struct String {
+    buffer: *i8,
+    length: isize,
+    maxlen: isize,
+    factor: isize,
+};
+

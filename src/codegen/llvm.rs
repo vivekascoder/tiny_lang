@@ -1,6 +1,6 @@
 use crate::ast::{Condition, ExternFunction, FunctionCall, Struct, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
-use crate::error::{ParserError, TinyError};
+use crate::error::TinyError;
 use anyhow::bail;
 use anyhow::Result;
 use either::Either;
@@ -57,6 +57,7 @@ struct LLVMCodeGen<'ctx, 'f> {
     program: Program,
     builder: Builder<'ctx>,
     module: Module<'ctx>,
+    file_path: String,
     scopes: Rc<RefCell<Vec<HashMap<Rc<str>, (PointerValue<'ctx>, Type)>>>>,
     fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f Function)>>>,
     structs: Rc<RefCell<HashMap<Rc<str>, (StructType<'ctx>, Rc<Struct>)>>>,
@@ -64,89 +65,22 @@ struct LLVMCodeGen<'ctx, 'f> {
     current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
 }
 
-struct LibcFunction;
-impl LibcFunction {
-    pub fn printf<'ctx>(
-        ctx: &'ctx Context,
-        module: &Module<'ctx>,
-    ) -> (Rc<str>, FunctionValue<'ctx>) {
-        let printftp = ctx.i32_type().fn_type(
-            &[ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-            true,
-        );
-        let printf = module.add_function("printf", printftp, Some(Linkage::External));
-        ("printf".into(), printf)
-    }
-
-    pub fn malloc<'ctx>(
-        ctx: &'ctx Context,
-        module: &Module<'ctx>,
-    ) -> (Rc<str>, FunctionValue<'ctx>) {
-        (
-            "malloc".into(),
-            module.add_function(
-                "malloc",
-                ctx.i8_type()
-                    .ptr_type(AddressSpace::from(0))
-                    .fn_type(&[ctx.i32_type().into()], false),
-                Some(Linkage::External),
-            ),
-        )
-    }
-
-    pub fn free<'ctx>(ctx: &'ctx Context, module: &Module<'ctx>) -> (Rc<str>, FunctionValue<'ctx>) {
-        (
-            "free".into(),
-            module.add_function(
-                "free",
-                ctx.void_type().fn_type(
-                    &[ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-                    false,
-                ),
-                Some(Linkage::External),
-            ),
-        )
-    }
-
-    pub fn memcpy<'ctx>(
-        ctx: &'ctx Context,
-        module: &Module<'ctx>,
-    ) -> (Rc<str>, FunctionValue<'ctx>) {
-        (
-            "memcpy".into(),
-            module.add_function(
-                "memcpy",
-                ctx.void_type().fn_type(
-                    &[
-                        ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                        ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                        ctx.i32_type().into(),
-                    ],
-                    false,
-                ),
-                Some(Linkage::External),
-            ),
-        )
-    }
-}
-
 /// # Main codegen part
 /// https://llvm.org/docs/LangRef.html
 impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     pub fn new(ctx: &'ctx Context, program: Program, module_name: &str) -> Self {
-        let ll = Self {
+        Self {
             ctx,
             program,
             builder: ctx.create_builder(),
             module: ctx.create_module(module_name),
+            file_path: module_name.into(),
             scopes: Rc::new(RefCell::new(vec![])),
             fns: Rc::new(RefCell::new(HashMap::new())),
             structs: Rc::new(RefCell::new(HashMap::new())),
             extern_fns: Rc::new(RefCell::new(HashMap::new())),
             current_fn: Rc::new(RefCell::new(None)),
-        };
-        ll.init_builtins();
-        ll
+        }
     }
 
     fn push_scope(&self) {
@@ -169,13 +103,6 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
     fn insert_extfunc(&self, v: (Rc<str>, FunctionValue<'ctx>)) {
         self.extern_fns.as_ref().borrow_mut().insert(v.0, v.1);
-    }
-
-    fn init_builtins(&self) {
-        // self.insert_extfunc(LibcFunction::printf(self.ctx, &self.module));
-        // self.insert_extfunc(LibcFunction::malloc(self.ctx, &self.module));
-        // self.insert_extfunc(LibcFunction::free(self.ctx, &self.module));
-        // self.insert_extfunc(LibcFunction::memcpy(self.ctx, &self.module));
     }
 
     fn compile_infix_expr(&self, i: &Infix, l: &Expr, r: &Expr) -> Result<Value<'ctx>> {
@@ -651,6 +578,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         }
     }
     fn get_basic_type_enum(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
+        info!("getting the corresponding type for {:?}", ty);
         match ty {
             Type::UnsignedInteger => self.ctx.i32_type().into(),
             Type::SignedInteger => self.ctx.i32_type().into(),
@@ -778,14 +706,30 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     pub fn compile(&'f self) -> Result<String> {
+        let mut have_main = false;
         for stmt in &self.program {
             match &stmt {
-                Statement::Function(_) | Statement::ExterFunction(_) | Statement::StructDef(_) => {}
+                Statement::Function(f) => {
+                    if f.name == "main".into() {
+                        have_main = true;
+                    }
+                }
+                Statement::ExterFunction(_) | Statement::StructDef(_) => {}
                 _ => {
                     bail!("top level statements can't be {:?}", &stmt);
                 }
             };
             self.compile_stmt(stmt)?;
+        }
+
+        if !have_main {
+            bail!(
+                "{}",
+                TinyError::new_compilation_error(
+                    self.file_path.to_string().into(),
+                    "tiny program doesn't have a main function".into()
+                )
+            )
         }
         Ok(self.module.print_to_string().to_string())
     }

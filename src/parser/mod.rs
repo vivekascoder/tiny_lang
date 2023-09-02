@@ -1,6 +1,5 @@
 pub mod chumsky_parser;
 
-use crate::error::ParserError;
 use crate::lexer::lexer::Lexer;
 use crate::{ast::*, error::TinyError};
 use anyhow::{anyhow, bail, Result};
@@ -9,7 +8,6 @@ use std::rc::Rc;
 
 pub struct Parser {
     lexer: Lexer,
-    // TODO: Use `Token` instead of `TokenType` to have row, col info.
     current_token: Rc<Token>,
     next_token: Rc<Token>,
     errors: Vec<anyhow::Error>,
