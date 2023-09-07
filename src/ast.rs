@@ -31,6 +31,7 @@ pub enum Expr {
     Call(FunctionCall),
     Ptr(Ident, Type),
     StructInstance(Rc<str>, Vec<(Ident, Expr)>),
+    StructAccessIdent(Vec<Rc<str>>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -110,27 +111,13 @@ pub enum Literal {
     String(Rc<str>),
 }
 
-// enum TVec {
-//     LiteralVec<Literal>
-// }
-
-// WASM specific choices
-// pub enum Literal {
-//     I32(i32),
-//     I64(i64),
-//     F32(i32),
-//     F64(i64),
-//     Bool(bool),
-//     Char(char),
-// }
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ident(pub Rc<str>);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(Ident, Option<Type>, Expr),
-    Mutate(Ident, Expr),
+    Mutate(Ident, Expr, bool),
     Function(Function),
     ExterFunction(ExternFunction),
     Return(Expr),
@@ -143,7 +130,7 @@ pub enum Statement {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Struct {
     pub name: Rc<str>,
-    pub fields: Vec<(Ident, Type)>,
+    pub fields: Vec<(Ident, Type)>, // TODO: use HashMap<> instead
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -181,6 +168,15 @@ pub enum Type {
     ///     ...
     /// }
     Ptr(Box<Type>),
+}
+
+impl Type {
+    pub fn is_ptr(&self) -> bool {
+        if let Type::Ptr(_) = self {
+            return true;
+        }
+        return false;
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -254,6 +250,7 @@ pub enum TokenType {
     Ampersand,  // &
     Carrot,     // ^
     Pipe,       // |
+    Period,     // .
 
     // Keywords
     KeywordLet,

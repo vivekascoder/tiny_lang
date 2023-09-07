@@ -218,6 +218,80 @@ llc -mtriple=wasm32-unknown-unknown -O3 -filetype=obj ./a.ll -o a.o
 wasm-ld ./a.o -o a.wasm --no-entry --allow-undefined
 ```
 
+## Pointers
+
+Specification for pointers in tiny lang.
+
+### struct element access
+
+```
+struct S {
+    a: usize,
+    b: bool
+}
+
+fn main() => usize {
+    let s = S {a: 34, b: false};
+    // s.a represents pointer
+    s.a = 35;
+    let sa_ptr: *usize = s.a;
+    return 0;
+}
+```
+
+## GC?
+
+- Memory management using RC
+- GC using mark and sweep algorithm.
+
+## Assignment vs expr statement.
+
+- assignment: ident -> = -> expr -> ;
+  - struct field assignment: ident -> . -> ... -> ident -> = -> expr -> ;
+- expr statement: expr -> ;
+
+### Mutation
+
+```
+<ident / ptr_access > = <expr>;
+```
+
+- ident:
+  - fsf, sfs, etc.
+- ptr access:
+
+  - *sfs, *sf.sfs
+
+- encounter \*
+  - expr statement,
+  - mutation.
+    - normal.
+    - struct field.
+
+```
+; ModuleID = './examples/struct.tiny'
+source_filename = "./examples/struct.tiny"
+
+declare i32 @printf(i8*, ...) #1
+@formatString = private constant [2 x i8] c"%d"
+
+define i32 @main() {
+main_main_block:
+  %0 = alloca { i32, i32 }, align 8
+  store { i32, i32 } { i32 242, i32 2 }, ptr %0, align 4
+  %1 = getelementptr { i32, i32 }, ptr %0, i32 0, i32 0
+  %2 = alloca ptr, align 8
+  store ptr %1, ptr %2, align 8
+  %3 = load ptr, ptr %2
+  store i32 343, ptr %3, align 4
+  %4 = load i32, ptr %1
+  call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @formatString , i32 0, i32 0), i32 %4)
+
+
+  ret i32 0
+}
+```
+
 ## Resources
 
 - https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/docs/ir.md

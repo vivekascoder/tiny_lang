@@ -123,6 +123,12 @@ impl Lexer {
                 self.bump();
                 Ok(self.token(TokenType::Colon, (self.cur - 1, self.cur)))
             }
+
+            '.' => {
+                self.bump();
+                Ok(self.token(TokenType::Period, (self.cur - 1, self.cur)))
+            }
+
             '=' => {
                 self.bump();
                 match self.current() {

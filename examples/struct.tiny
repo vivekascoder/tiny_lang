@@ -8,5 +8,10 @@ fun main() => usize {
         age: 242,
         class: 2,
     };
+    let s: *usize = s1.age;
+    // s = 343;
+    // to mutate the value `s` is pointing to do
+    *s = 343;
+    // ads = 3232 + 34;
     return 0;
 }

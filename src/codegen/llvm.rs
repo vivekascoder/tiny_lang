@@ -1,8 +1,8 @@
 use crate::ast::{Condition, ExternFunction, FunctionCall, Struct, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use crate::error::TinyError;
-use anyhow::bail;
-use anyhow::Result;
+use anyhow::{anyhow, bail};
+use anyhow::{ensure, Result};
 use either::Either;
 use inkwell::basic_block::BasicBlock;
 use inkwell::module::Linkage;
@@ -80,6 +80,39 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             structs: Rc::new(RefCell::new(HashMap::new())),
             extern_fns: Rc::new(RefCell::new(HashMap::new())),
             current_fn: Rc::new(RefCell::new(None)),
+        }
+    }
+
+    fn get_basic_metadata_type_enum(&self, ty: &Type) -> BasicMetadataTypeEnum<'ctx> {
+        match ty {
+            Type::UnsignedInteger => self.ctx.i32_type().into(),
+            Type::SignedInteger => self.ctx.i32_type().into(),
+            Type::Bool => self.ctx.bool_type().into(),
+            Type::Char => self.ctx.i8_type().into(),
+            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
+            Type::Ptr(p) => match p.as_ref() {
+                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
+                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_basic_type_enum(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
+        info!("getting the corresponding type for {:?}", ty);
+        match ty {
+            Type::UnsignedInteger => self.ctx.i32_type().into(),
+            Type::SignedInteger => self.ctx.i32_type().into(),
+            Type::Bool => self.ctx.bool_type().into(),
+            Type::Char => self.ctx.i8_type().into(),
+            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
+            Type::Ptr(p) => match p.as_ref() {
+                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
+                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
         }
     }
 
@@ -225,8 +258,91 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             Expr::StructInstance(name, fields) => {
                 Ok(self.compile_expr_struct_instance(name, fields)?)
             }
+            Expr::StructAccessIdent(idents) => self.compile_struct_access_ident(idents),
             _ => unimplemented!(),
         }
+    }
+
+    fn compile_struct_access_ident(&self, idents: &Vec<Rc<str>>) -> Result<Value<'ctx>> {
+        let struct_instance_nm = idents.first().unwrap();
+        let scopes = self.scopes.as_ref().borrow();
+        let (ptr_val, ptr_type) = scopes
+            .iter()
+            .rev()
+            .find_map(|s| s.get(struct_instance_nm))
+            .ok_or_else(|| {
+                anyhow!(
+                    "{}",
+                    TinyError::new_compilation_error(
+                        self.file_path.clone().into(),
+                        format!("struct instance `{}` isn't defined.", struct_instance_nm)
+                    )
+                )
+            })?;
+
+        let struct_nm = match ptr_type {
+            Type::Struct(nm) => Rc::clone(nm),
+            _ => {
+                bail!(
+                    "{}",
+                    TinyError::new_compilation_error(
+                        self.file_path.clone().into(),
+                        format!("pointer type is not struct.")
+                    )
+                )
+            }
+        };
+        let structs = self.structs.as_ref().borrow();
+
+        let struct_ = match structs.get(&struct_nm) {
+            Some(v) => v,
+            _ => {
+                bail!("struct doesn't exists.");
+            }
+        };
+
+        if idents.len() > 2 {
+            bail!("not supprted nested access yet.");
+        }
+        let access_field = idents.last().unwrap();
+        let index = struct_
+            .1
+            .as_ref()
+            .fields
+            .iter()
+            .position(|x| &x.0 .0 == access_field)
+            .ok_or(anyhow!(
+                "field `{}` doesn't exist in the struct defination.",
+                access_field
+            ))?;
+        let field = struct_
+            .1
+            .as_ref()
+            .fields
+            .iter()
+            .find(|x| &x.0 .0 == access_field)
+            .ok_or(anyhow!(
+                "field `{}` doesn't exist in the struct defination.",
+                access_field
+            ))?;
+
+        let ptr = unsafe {
+            self.builder.build_gep(
+                struct_.0,
+                *ptr_val,
+                &[
+                    self.ctx.i32_type().const_int(0, false),
+                    self.ctx.i32_type().const_int(index as u64, false),
+                ],
+                "",
+            )
+        };
+
+        // TODO: use Rc<Type> to reduce .clone()
+        Ok(Value {
+            ty: Type::Ptr(Box::new(field.1.clone())),
+            val: ptr.into(),
+        })
     }
 
     fn compile_expr_ident(&self, i: &Ident) -> Result<Value<'ctx>> {
@@ -430,6 +546,12 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     bail!("struct {}, is not defined.", name);
                 }
             }
+            Type::Ptr(ref p) => match p.as_ref() {
+                Type::UnsignedInteger => self
+                    .builder
+                    .build_alloca(self.ctx.i32_type().ptr_type(AddressSpace::from(0)), ""),
+                _ => unimplemented!(),
+            },
             _ => unimplemented!(),
         };
         self.builder.build_store(ptr, val.val());
@@ -437,10 +559,10 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         let mut scopes = self.scopes.as_ref().borrow_mut();
         let c_scope = scopes.last_mut().unwrap();
         if c_scope.contains_key(&i.0) {
-            bail!("already declared in this scope.")
+            bail!("already declared in this scope.");
         }
         // TODO: remove unwrap
-
+        info!("inserted {} with value {:?}", &i.0, (&ptr, ty_));
         c_scope.insert(Rc::clone(&i.0), (ptr, ty_.clone().unwrap()));
         Ok(())
     }
@@ -544,7 +666,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(())
     }
 
-    fn compile_mutate(&self, ident: &Ident, expr: &Expr) -> Result<()> {
+    fn compile_mutate(&self, ident: &Ident, expr: &Expr, is_ptr: bool) -> Result<()> {
         let new_val = self.compile_expr(expr)?;
 
         if let Some((ptr, ty_)) = self
@@ -555,43 +677,24 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .rev()
             .find_map(|s| s.get(&ident.0))
         {
-            Value::assert_if_not(&new_val.ty(), ty_)?;
-            self.builder.build_store(*ptr, new_val.val());
+            if !is_ptr {
+                Value::assert_if_not(&new_val.ty(), ty_)?;
+                self.builder.build_store(*ptr, new_val.val());
+            } else {
+                ensure!(ty_.is_ptr(), "type is not pointer.");
+                // Load the pointer from the ident's pointer,
+                let loaded_ptr = self.builder.build_load(
+                    self.ctx.i32_type().ptr_type(AddressSpace::from(0)),
+                    *ptr,
+                    "",
+                );
+                // then build store.
+                self.builder
+                    .build_store(loaded_ptr.into_pointer_value(), new_val.val());
+            }
         }
 
         Ok(())
-    }
-
-    fn get_basic_metadata_type_enum(&self, ty: &Type) -> BasicMetadataTypeEnum<'ctx> {
-        match ty {
-            Type::UnsignedInteger => self.ctx.i32_type().into(),
-            Type::SignedInteger => self.ctx.i32_type().into(),
-            Type::Bool => self.ctx.bool_type().into(),
-            Type::Char => self.ctx.i8_type().into(),
-            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
-            Type::Ptr(p) => match p.as_ref() {
-                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
-                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                _ => unimplemented!(),
-            },
-            _ => unimplemented!(),
-        }
-    }
-    fn get_basic_type_enum(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
-        info!("getting the corresponding type for {:?}", ty);
-        match ty {
-            Type::UnsignedInteger => self.ctx.i32_type().into(),
-            Type::SignedInteger => self.ctx.i32_type().into(),
-            Type::Bool => self.ctx.bool_type().into(),
-            Type::Char => self.ctx.i8_type().into(),
-            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
-            Type::Ptr(p) => match p.as_ref() {
-                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
-                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                _ => unimplemented!(),
-            },
-            _ => unimplemented!(),
-        }
     }
 
     fn compile_external_fn(&self, f: &ExternFunction) -> Result<FunctionValue<'ctx>> {
@@ -692,7 +795,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             }
             Statement::If(c) => self.compile_condition(c),
             Statement::While(while_) => self.compile_while(while_),
-            Statement::Mutate(var, expr) => self.compile_mutate(var, expr),
+            Statement::Mutate(var, expr, is_ptr) => self.compile_mutate(var, expr, *is_ptr),
             Statement::ExterFunction(ex_fun) => {
                 let fn_ = self.compile_external_fn(ex_fun)?;
                 self.extern_fns
