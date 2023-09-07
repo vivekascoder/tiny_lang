@@ -1,6 +1,7 @@
 use crate::ast::{Condition, ExternFunction, FunctionCall, Struct, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
 use crate::error::TinyError;
+use crate::scope;
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
 use either::Either;
@@ -259,7 +260,27 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 Ok(self.compile_expr_struct_instance(name, fields)?)
             }
             Expr::StructAccessIdent(idents) => self.compile_struct_access_ident(idents),
-            _ => unimplemented!(),
+            Expr::Ptr(i) => self.compile_expr_ptr(i),
+        }
+    }
+
+    fn compile_expr_ptr(&self, i: &Ident) -> Result<Value<'ctx>> {
+        let scopes = self.scopes.as_ref().borrow();
+        let (ptr, ty_) = scopes
+            .iter()
+            .rev()
+            .find_map(|s| s.get(&i.0))
+            .ok_or(anyhow!("ident `{}` is not defined in current scope.", &i.0))?;
+        if let Type::Ptr(p_ty_) = ty_ {
+            let val = self
+                .builder
+                .build_load(self.get_basic_type_enum(&p_ty_), *ptr, "");
+            Ok(Value {
+                ty: *p_ty_.clone(),
+                val: val,
+            })
+        } else {
+            bail!("not pointer type.");
         }
     }
 
@@ -668,31 +689,31 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
     fn compile_mutate(&self, ident: &Ident, expr: &Expr, is_ptr: bool) -> Result<()> {
         let new_val = self.compile_expr(expr)?;
-
-        if let Some((ptr, ty_)) = self
-            .scopes
-            .as_ref()
-            .borrow()
+        let scopes = self.scopes.as_ref().borrow();
+        let (ptr, ty_) = scopes
             .iter()
             .rev()
             .find_map(|s| s.get(&ident.0))
-        {
-            if !is_ptr {
-                Value::assert_if_not(&new_val.ty(), ty_)?;
-                self.builder.build_store(*ptr, new_val.val());
-            } else {
-                ensure!(ty_.is_ptr(), "type is not pointer.");
-                // Load the pointer from the ident's pointer,
-                let loaded_ptr = self.builder.build_load(
-                    self.ctx.i32_type().ptr_type(AddressSpace::from(0)),
-                    *ptr,
-                    "",
-                );
-                // then build store.
-                self.builder
-                    .build_store(loaded_ptr.into_pointer_value(), new_val.val());
-            }
-        }
+            .ok_or(anyhow!(
+                "ident `{}` is not defined in current scope.",
+                &ident.0
+            ))?;
+
+        if !is_ptr {
+            Value::assert_if_not(&new_val.ty(), ty_)?;
+            self.builder.build_store(*ptr, new_val.val());
+        } else {
+            ensure!(ty_.is_ptr(), "type is not pointer.");
+            // Load the pointer from the ident's pointer,
+            let loaded_ptr = self.builder.build_load(
+                self.ctx.i32_type().ptr_type(AddressSpace::from(0)),
+                *ptr,
+                "",
+            );
+            // then build store.
+            self.builder
+                .build_store(loaded_ptr.into_pointer_value(), new_val.val());
+        };
 
         Ok(())
     }

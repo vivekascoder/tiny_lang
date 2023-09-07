@@ -29,7 +29,7 @@ pub enum Expr {
     Prefix(Prefix, Box<Expr>),
     Literal(Literal),
     Call(FunctionCall),
-    Ptr(Ident, Type),
+    Ptr(Ident),
     StructInstance(Rc<str>, Vec<(Ident, Expr)>),
     StructAccessIdent(Vec<Rc<str>>),
 }

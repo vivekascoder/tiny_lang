@@ -12,6 +12,7 @@ fun main() => usize {
     // s = 343;
     // to mutate the value `s` is pointing to do
     *s = 343;
-    // ads = 3232 + 34;
+    let v: usize = *s;
+
     return 0;
 }

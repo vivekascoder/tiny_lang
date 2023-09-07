@@ -751,19 +751,18 @@ impl Parser {
                 }
             }
             TokenType::Multiply => {
-                // let ident = match self.next_token.as_ref() {
-                //     TokenType::Identifier(i) => Rc::clone(i),
-                //     _ => {
-                //         bail!(
-                //             "expected identifier after * got {:?} instead.",
-                //             self.next_token
-                //         );
-                //     }
-                // };
+                let ident = match self.next_token.as_ref().type_ {
+                    TokenType::Identifier(ref i) => Rc::clone(i),
+                    _ => {
+                        bail!(
+                            "expected identifier after * got {:?} instead.",
+                            self.next_token
+                        );
+                    }
+                };
+                self.bump()?;
 
-                // // FIXME: return without type and then have some way to infer types.
-                // Expr::Ptr(Ident(ident), Type::Bool)
-                unimplemented!("handle pointers in expr.");
+                Expr::Ptr(Ident(ident))
             }
             _ => {
                 bail!(
