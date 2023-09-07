@@ -228,6 +228,7 @@ impl Parser {
         );
 
         let mut params: Vec<(Ident, Type)> = vec![];
+        let mut is_var: bool = false;
 
         // Start parsing parameters
         while !self.current_token_is(&Rc::new(TokenType::RParen)) {
@@ -236,6 +237,14 @@ impl Parser {
                 TokenType::Identifier(ref n) => Rc::clone(n),
                 TokenType::RParen => {
                     self.bump()?;
+                    break;
+                }
+                TokenType::VariableArg => {
+                    self.bump()?;
+                    is_var = true;
+                    if !self.expect_next_token(&Rc::new(TokenType::RParen))? {
+                        bail!("expected `...` to be the last param. of func.");
+                    }
                     break;
                 }
                 _ => {
@@ -284,10 +293,11 @@ impl Parser {
                 );
             }
             self.bump()?;
-            Ok(Statement::ExterFunction(ExternFunction {
+            Ok(Statement::ExternFunction(ExternFunction {
                 name: fn_name,
                 params: params,
                 return_type: return_type,
+                is_var: is_var,
             }))
         } else {
             if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {

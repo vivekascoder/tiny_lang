@@ -3,6 +3,8 @@ struct Student {
     class: usize,
 };
 
+extern fun printf(s: *i8, ...) => usize;
+
 fun main() => usize {
     let s1: Student = Student {
         age: 242,
@@ -13,6 +15,8 @@ fun main() => usize {
     // to mutate the value `s` is pointing to do
     *s = 343;
     let v: usize = *s;
+    // let ss: string = "this is something";
+    printf("this is a string");
 
     return 0;
 }

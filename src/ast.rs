@@ -119,7 +119,7 @@ pub enum Statement {
     Let(Ident, Option<Type>, Expr),
     Mutate(Ident, Expr, bool),
     Function(Function),
-    ExterFunction(ExternFunction),
+    ExternFunction(ExternFunction),
     Return(Expr),
     If(Condition),
     Expr(Expr),
@@ -138,6 +138,7 @@ pub struct ExternFunction {
     pub name: Rc<str>,
     pub params: Vec<(Ident, Type)>,
     pub return_type: Option<Type>,
+    pub is_var: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -239,18 +240,19 @@ pub enum TokenType {
     LBrace, // {
     RBrace, // }
     Comma,
-    SQuote,     // '
-    DQuote,     // "
-    BSlash,     // \
-    NewLine,    // \n
-    Tab,        // \t
-    Space,      // ' '
-    LeftShift,  // <<
-    RightShift, // >>
-    Ampersand,  // &
-    Carrot,     // ^
-    Pipe,       // |
-    Period,     // .
+    SQuote,      // '
+    DQuote,      // "
+    BSlash,      // \
+    NewLine,     // \n
+    Tab,         // \t
+    Space,       // ' '
+    LeftShift,   // <<
+    RightShift,  // >>
+    Ampersand,   // &
+    Carrot,      // ^
+    Pipe,        // |
+    Period,      // .
+    VariableArg, // ...
 
     // Keywords
     KeywordLet,

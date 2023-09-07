@@ -66,6 +66,7 @@ impl Lexer {
             "str" => Some(TokenType::KeywordStr),
             "extern" => Some(TokenType::KeywordExtern),
             "struct" => Some(TokenType::KeywordStruct),
+            "string" => Some(TokenType::KeywordStr),
             _ => None,
         }
     }
@@ -125,8 +126,27 @@ impl Lexer {
             }
 
             '.' => {
+                let start = self.cur;
                 self.bump();
-                Ok(self.token(TokenType::Period, (self.cur - 1, self.cur)))
+                loop {
+                    match self.current() {
+                        '.' => {
+                            self.bump();
+                            continue;
+                        }
+                        _ => {
+                            let periods = &self.source[start..self.cur];
+                            if periods.len() == 1 {
+                                return Ok(self.token(TokenType::Period, (self.cur - 1, self.cur)));
+                            } else if periods.len() == 3 {
+                                return Ok(self
+                                    .token(TokenType::VariableArg, (self.cur - start, self.cur)));
+                            } else {
+                                bail!("invalid token `{}`", periods.iter().collect::<String>());
+                            }
+                        }
+                    }
+                }
             }
 
             '=' => {
