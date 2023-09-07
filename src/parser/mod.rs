@@ -1,14 +1,13 @@
 pub mod chumsky_parser;
 
-use crate::ast::*;
 use crate::lexer::lexer::Lexer;
+use crate::{ast::*, error::TinyError};
 use anyhow::{anyhow, bail, Result};
 use log::info;
 use std::rc::Rc;
 
 pub struct Parser {
     lexer: Lexer,
-    // TODO: Use `Token` instead of `TokenType` to have row, col info.
     current_token: Rc<Token>,
     next_token: Rc<Token>,
     errors: Vec<anyhow::Error>,
@@ -110,10 +109,13 @@ impl Parser {
 
         if !self.expect_next_token(&Rc::new(TokenType::SemiColon))? {
             bail!(
-                "Line: {}, Col: {}, `;` not found",
-                self.current_token.row,
-                self.current_token.col
-            )
+                "{}",
+                TinyError::new_parser_error(
+                    Rc::clone(&self.current_token),
+                    self.module().into(),
+                    "expected semicolon".into()
+                )
+            );
         }
         self.bump()?;
 
@@ -157,10 +159,18 @@ impl Parser {
                         Ok(Type::Ptr(Box::new(typee)))
                     }
                     _ => {
-                        bail!("not valid pointer type.");
+                        bail!(
+                            "{}",
+                            TinyError::new_parser_error(
+                                Rc::clone(&self.next_token),
+                                self.module().into(),
+                                "not valid pointer type.".into()
+                            )
+                        );
                     }
                 }
             }
+            TokenType::Identifier(ref i) => Ok(Type::Struct(Rc::clone(i))),
             _ => {
                 bail!(
                     "{:?} is not a valid parameter type.",
@@ -218,6 +228,7 @@ impl Parser {
         );
 
         let mut params: Vec<(Ident, Type)> = vec![];
+        let mut is_var: bool = false;
 
         // Start parsing parameters
         while !self.current_token_is(&Rc::new(TokenType::RParen)) {
@@ -226,6 +237,14 @@ impl Parser {
                 TokenType::Identifier(ref n) => Rc::clone(n),
                 TokenType::RParen => {
                     self.bump()?;
+                    break;
+                }
+                TokenType::VariableArg => {
+                    self.bump()?;
+                    is_var = true;
+                    if !self.expect_next_token(&Rc::new(TokenType::RParen))? {
+                        bail!("expected `...` to be the last param. of func.");
+                    }
                     break;
                 }
                 _ => {
@@ -274,10 +293,11 @@ impl Parser {
                 );
             }
             self.bump()?;
-            Ok(Statement::ExterFunction(ExternFunction {
+            Ok(Statement::ExternFunction(ExternFunction {
                 name: fn_name,
                 params: params,
                 return_type: return_type,
+                is_var: is_var,
             }))
         } else {
             if !self.expect_next_token(&Rc::new(TokenType::LBrace))? {
@@ -429,7 +449,7 @@ impl Parser {
                 bail!("end plx");
             }
             self.bump()?;
-            Ok(Statement::Mutate(Ident(var), expr))
+            Ok(Statement::Mutate(Ident(var), expr, false))
         } else {
             Ok(self.parse_expression_statement()?)
         }
@@ -498,6 +518,23 @@ impl Parser {
         })))
     }
 
+    fn parse_pointer_mutation(&mut self) -> Result<Statement> {
+        let s = match self.next_token.as_ref().type_ {
+            TokenType::Identifier(ref i) => Rc::clone(i),
+            _ => bail!("not ident after *"),
+        };
+
+        self.bump()?;
+        if !self.expect_next_token(&Rc::new(TokenType::Equal))? {
+            bail!("can't find equal");
+        }
+        self.bump()?;
+
+        let val = self.parse_expression(Precedence::Lowest)?;
+
+        Ok(Statement::Mutate(Ident(s), val, true))
+    }
+
     fn parse_statement(&mut self) -> Result<Statement> {
         info!("Current Token: {:?}", self.current_token);
         Ok(match self.current_token.as_ref().type_ {
@@ -508,6 +545,7 @@ impl Parser {
             TokenType::KeywordReturn => self.parse_return_statement()?,
             TokenType::Identifier(_) => self.parse_assign_or_expr()?,
             TokenType::KeywordStruct => self.parse_struct()?,
+            TokenType::Multiply => self.parse_pointer_mutation()?,
             _ => self.parse_expression_statement()?,
         })
     }
@@ -591,18 +629,39 @@ impl Parser {
         })
     }
 
-    fn parse_expr_ident(&mut self) -> Result<Expr> {
+    fn parse_expr_struct_access_ident(&mut self) -> Result<Expr> {
+        let mut idents: Vec<Rc<str>> = vec![];
         let i = match self.current_token.type_ {
             TokenType::Identifier(ref i) => Rc::clone(i),
             _ => {
                 bail!("not");
             }
         };
-        // if next token is not `{` then it's a normal ident.
-        if !self.next_token_is(&Rc::new(TokenType::LBrace)) {
-            return Ok(Expr::Ident(Ident(i)));
-        }
 
+        idents.push(i);
+
+        while self.next_token_is(&Rc::new(TokenType::Period)) {
+            self.bump()?;
+            let i = match self.next_token.type_ {
+                TokenType::Identifier(ref i) => Rc::clone(i),
+                _ => {
+                    bail!(
+                        "{}",
+                        TinyError::new_parser_error(
+                            Rc::clone(&self.next_token),
+                            self.module().into(),
+                            "expected identifier after '.'".into()
+                        )
+                    );
+                }
+            };
+            idents.push(i);
+            self.bump()?;
+        }
+        Ok(Expr::StructAccessIdent(idents))
+    }
+
+    fn parse_expr_struct_instance(&mut self, i: Rc<str>) -> Result<Expr> {
         // Otherwise it'll be a sturct instance.
         let mut fields: Vec<(Ident, Expr)> = vec![];
         self.bump()?;
@@ -625,11 +684,22 @@ impl Parser {
             }
         }
         self.bump()?;
-        // if !self.next_token_is(&Rc::new(TokenType::SemiColon)) {
-        //     bail!("expected semicolon");
-        // }
-        // self.bump()?;
         Ok(Expr::StructInstance(i, fields))
+    }
+
+    fn parse_expr_ident(&mut self) -> Result<Expr> {
+        let i = match self.current_token.type_ {
+            TokenType::Identifier(ref i) => Rc::clone(i),
+            _ => {
+                bail!("not");
+            }
+        };
+
+        match self.next_token.type_ {
+            TokenType::Period => self.parse_expr_struct_access_ident(), // something.
+            TokenType::LBrace => self.parse_expr_struct_instance(i),    // something {
+            _ => Ok(Expr::Ident(Ident(i))),
+        }
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr> {
@@ -690,21 +760,20 @@ impl Parser {
                     Err(e) => bail!("error while parsing expression for prefix with {:#?}", e),
                 }
             }
-            // FIXME: How to handle this?
-            // TokenType::Multiply => {
-            //     let ident = match self.next_token.as_ref() {
-            //         TokenType::Identifier(i) => Rc::clone(i),
-            //         _ => {
-            //             bail!(
-            //                 "expected identifier after * got {:?} instead.",
-            //                 self.next_token
-            //             );
-            //         }
-            //     };
+            TokenType::Multiply => {
+                let ident = match self.next_token.as_ref().type_ {
+                    TokenType::Identifier(ref i) => Rc::clone(i),
+                    _ => {
+                        bail!(
+                            "expected identifier after * got {:?} instead.",
+                            self.next_token
+                        );
+                    }
+                };
+                self.bump()?;
 
-            //     // FIXME: return without type and then have some way to infer types.
-            //     Expr::Ptr(Ident(ident), Type::Bool)
-            // }
+                Expr::Ptr(Ident(ident))
+            }
             _ => {
                 bail!(
                     "no prefix parse function found for {:?}",
@@ -783,7 +852,7 @@ impl Parser {
                     program.push(stmt);
                 }
                 Err(e) => {
-                    bail!("That's it: {:?}", e)
+                    bail!("{}", e)
                 }
             }
         }

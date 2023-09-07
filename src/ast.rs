@@ -29,8 +29,9 @@ pub enum Expr {
     Prefix(Prefix, Box<Expr>),
     Literal(Literal),
     Call(FunctionCall),
-    Ptr(Ident, Type),
+    Ptr(Ident),
     StructInstance(Rc<str>, Vec<(Ident, Expr)>),
+    StructAccessIdent(Vec<Rc<str>>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -110,29 +111,15 @@ pub enum Literal {
     String(Rc<str>),
 }
 
-// enum TVec {
-//     LiteralVec<Literal>
-// }
-
-// WASM specific choices
-// pub enum Literal {
-//     I32(i32),
-//     I64(i64),
-//     F32(i32),
-//     F64(i64),
-//     Bool(bool),
-//     Char(char),
-// }
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ident(pub Rc<str>);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Let(Ident, Option<Type>, Expr),
-    Mutate(Ident, Expr),
+    Mutate(Ident, Expr, bool),
     Function(Function),
-    ExterFunction(ExternFunction),
+    ExternFunction(ExternFunction),
     Return(Expr),
     If(Condition),
     Expr(Expr),
@@ -143,7 +130,7 @@ pub enum Statement {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Struct {
     pub name: Rc<str>,
-    pub fields: Vec<(Ident, Type)>,
+    pub fields: Vec<(Ident, Type)>, // TODO: use HashMap<> instead
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -151,6 +138,7 @@ pub struct ExternFunction {
     pub name: Rc<str>,
     pub params: Vec<(Ident, Type)>,
     pub return_type: Option<Type>,
+    pub is_var: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -173,13 +161,23 @@ pub enum Type {
     Bool,
     Char,
     String,
-    Struct(Rc<Struct>),
+    // Struct(Rc<Struct>),
+    Struct(Rc<str>),
 
     /// function argument can be a pointer
     /// fun do_something(a: *i8) => *i32 {
     ///     ...
     /// }
     Ptr(Box<Type>),
+}
+
+impl Type {
+    pub fn is_ptr(&self) -> bool {
+        if let Type::Ptr(_) = self {
+            return true;
+        }
+        return false;
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -242,17 +240,19 @@ pub enum TokenType {
     LBrace, // {
     RBrace, // }
     Comma,
-    SQuote,     // '
-    DQuote,     // "
-    BSlash,     // \
-    NewLine,    // \n
-    Tab,        // \t
-    Space,      // ' '
-    LeftShift,  // <<
-    RightShift, // >>
-    Ampersand,  // &
-    Carrot,     // ^
-    Pipe,       // |
+    SQuote,      // '
+    DQuote,      // "
+    BSlash,      // \
+    NewLine,     // \n
+    Tab,         // \t
+    Space,       // ' '
+    LeftShift,   // <<
+    RightShift,  // >>
+    Ampersand,   // &
+    Carrot,      // ^
+    Pipe,        // |
+    Period,      // .
+    VariableArg, // ...
 
     // Keywords
     KeywordLet,

@@ -1,0 +1,22 @@
+struct Student {
+    age: usize,
+    class: usize,
+};
+
+extern fun printf(s: *i8, ...) => usize;
+
+fun main() => usize {
+    let s1: Student = Student {
+        age: 242,
+        class: 2,
+    };
+    let s: *usize = s1.age;
+    // s = 343;
+    // to mutate the value `s` is pointing to do
+    *s = 343;
+    let v: usize = *s;
+    // let ss: string = "this is something";
+    printf("this is a string %d", 343);
+
+    return 0;
+}

@@ -1,12 +1,15 @@
-use crate::ast::{Condition, ExternFunction, Struct, While};
+use crate::ast::{Condition, ExternFunction, FunctionCall, Struct, While};
 use crate::ast::{Expr, Function, Ident, Infix, Literal, Program, Statement, Type};
-use anyhow::bail;
-use anyhow::Result;
+use crate::error::TinyError;
+use crate::scope;
+use anyhow::{anyhow, bail};
+use anyhow::{ensure, Result};
+use chumsky::chain::Chain;
 use either::Either;
 use inkwell::basic_block::BasicBlock;
 use inkwell::module::Linkage;
-use inkwell::types::{BasicType, BasicTypeEnum, StructType};
-use inkwell::values::IntValue;
+use inkwell::types::{AnyTypeEnum, BasicType, BasicTypeEnum, StructType};
+use inkwell::values::{AnyValue, IntValue};
 use inkwell::values::{BasicMetadataValueEnum, StructValue};
 use inkwell::{
     builder::Builder,
@@ -15,7 +18,7 @@ use inkwell::{
     types::BasicMetadataTypeEnum,
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
 };
-use inkwell::{AddressSpace, IntPredicate};
+use inkwell::{AddressSpace, GlobalVisibility, IntPredicate};
 use log::info;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
@@ -56,96 +59,63 @@ struct LLVMCodeGen<'ctx, 'f> {
     program: Program,
     builder: Builder<'ctx>,
     module: Module<'ctx>,
+    file_path: String,
     scopes: Rc<RefCell<Vec<HashMap<Rc<str>, (PointerValue<'ctx>, Type)>>>>,
     fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f Function)>>>,
     structs: Rc<RefCell<HashMap<Rc<str>, (StructType<'ctx>, Rc<Struct>)>>>,
-    extern_fns: Rc<RefCell<HashMap<Rc<str>, FunctionValue<'ctx>>>>,
+    extern_fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f ExternFunction)>>>,
     current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
-}
-
-struct LibcFunction;
-impl LibcFunction {
-    pub fn printf<'ctx>(
-        ctx: &'ctx Context,
-        module: &Module<'ctx>,
-    ) -> (Rc<str>, FunctionValue<'ctx>) {
-        let printftp = ctx.i32_type().fn_type(
-            &[ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-            true,
-        );
-        let printf = module.add_function("printf", printftp, Some(Linkage::External));
-        ("printf".into(), printf)
-    }
-
-    pub fn malloc<'ctx>(
-        ctx: &'ctx Context,
-        module: &Module<'ctx>,
-    ) -> (Rc<str>, FunctionValue<'ctx>) {
-        (
-            "malloc".into(),
-            module.add_function(
-                "malloc",
-                ctx.i8_type()
-                    .ptr_type(AddressSpace::from(0))
-                    .fn_type(&[ctx.i32_type().into()], false),
-                Some(Linkage::External),
-            ),
-        )
-    }
-
-    pub fn free<'ctx>(ctx: &'ctx Context, module: &Module<'ctx>) -> (Rc<str>, FunctionValue<'ctx>) {
-        (
-            "free".into(),
-            module.add_function(
-                "free",
-                ctx.void_type().fn_type(
-                    &[ctx.i8_type().ptr_type(AddressSpace::from(0)).into()],
-                    false,
-                ),
-                Some(Linkage::External),
-            ),
-        )
-    }
-
-    pub fn memcpy<'ctx>(
-        ctx: &'ctx Context,
-        module: &Module<'ctx>,
-    ) -> (Rc<str>, FunctionValue<'ctx>) {
-        (
-            "memcpy".into(),
-            module.add_function(
-                "memcpy",
-                ctx.void_type().fn_type(
-                    &[
-                        ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                        ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                        ctx.i32_type().into(),
-                    ],
-                    false,
-                ),
-                Some(Linkage::External),
-            ),
-        )
-    }
 }
 
 /// # Main codegen part
 /// https://llvm.org/docs/LangRef.html
 impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     pub fn new(ctx: &'ctx Context, program: Program, module_name: &str) -> Self {
-        let ll = Self {
+        Self {
             ctx,
             program,
             builder: ctx.create_builder(),
             module: ctx.create_module(module_name),
+            file_path: module_name.into(),
             scopes: Rc::new(RefCell::new(vec![])),
             fns: Rc::new(RefCell::new(HashMap::new())),
             structs: Rc::new(RefCell::new(HashMap::new())),
             extern_fns: Rc::new(RefCell::new(HashMap::new())),
             current_fn: Rc::new(RefCell::new(None)),
-        };
-        ll.init_builtins();
-        ll
+        }
+    }
+
+    fn get_basic_metadata_type_enum(&self, ty: &Type) -> BasicMetadataTypeEnum<'ctx> {
+        match ty {
+            Type::UnsignedInteger => self.ctx.i32_type().into(),
+            Type::SignedInteger => self.ctx.i32_type().into(),
+            Type::Bool => self.ctx.bool_type().into(),
+            Type::Char => self.ctx.i8_type().into(),
+            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
+            Type::Ptr(p) => match p.as_ref() {
+                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
+                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_basic_type_enum(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
+        info!("getting the corresponding type for {:?}", ty);
+        match ty {
+            Type::UnsignedInteger => self.ctx.i32_type().into(),
+            Type::SignedInteger => self.ctx.i32_type().into(),
+            Type::Bool => self.ctx.bool_type().into(),
+            Type::Char => self.ctx.i8_type().into(),
+            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
+            Type::Ptr(p) => match p.as_ref() {
+                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
+                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
+        }
     }
 
     fn push_scope(&self) {
@@ -164,17 +134,6 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .into_iter()
             .map(|v| self.ctx.i8_type().const_int(v as u64, false))
             .collect::<Vec<IntValue>>()
-    }
-
-    fn insert_extfunc(&self, v: (Rc<str>, FunctionValue<'ctx>)) {
-        self.extern_fns.as_ref().borrow_mut().insert(v.0, v.1);
-    }
-
-    fn init_builtins(&self) {
-        // self.insert_extfunc(LibcFunction::printf(self.ctx, &self.module));
-        // self.insert_extfunc(LibcFunction::malloc(self.ctx, &self.module));
-        // self.insert_extfunc(LibcFunction::free(self.ctx, &self.module));
-        // self.insert_extfunc(LibcFunction::memcpy(self.ctx, &self.module));
     }
 
     fn compile_infix_expr(&self, i: &Infix, l: &Expr, r: &Expr) -> Result<Value<'ctx>> {
@@ -273,136 +232,279 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                         .as_basic_value_enum(),
                 )),
                 Literal::String(s) => {
-                    let arr = s
-                        .as_ref()
-                        .bytes()
-                        .into_iter()
-                        .map(|v| self.ctx.i8_type().const_int(v as u64, false))
-                        .collect::<Vec<IntValue>>();
-                    Ok(Value::new(
-                        Type::String,
-                        self.ctx
-                            .i8_type()
-                            .const_array(arr.as_slice())
-                            .as_basic_value_enum(),
-                    ))
-                }
-            },
-            Expr::Ident(i) => {
-                if let Some((ptr, ty_)) = self
-                    .scopes
-                    .as_ref()
-                    .borrow()
-                    .iter()
-                    .rev()
-                    .find_map(|s| s.get(&i.0))
-                {
-                    match ty_ {
-                        Type::Bool => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.bool_type(), *ptr, ""),
-                        )),
-                        Type::Char => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.i8_type(), *ptr, ""),
-                        )),
-                        Type::UnsignedInteger => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
-                        )),
-                        Type::SignedInteger => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
-                        )),
-                        Type::String => Ok(Value::new(
-                            ty_.clone(),
-                            self.builder.build_load(
-                                self.ctx.i8_type().ptr_type(AddressSpace::default()),
-                                *ptr,
-                                "",
-                            ),
-                        )),
-                        _ => unimplemented!(),
-                    }
-                } else {
-                    panic!("ident doesn't exists.")
-                }
-            }
+                    let str_ = self.ctx.const_string(s.as_ref().as_bytes(), true);
+                    let g_val = self.module.add_global(str_.get_type(), None, "");
+                    g_val.set_initializer(&str_);
+                    g_val.set_constant(true);
+                    g_val.set_visibility(GlobalVisibility::Default);
 
-            Expr::Infix(i, l, r) => Ok(self.compile_infix_expr(i, l, r)?),
-
-            Expr::Call(fn_call) => {
-                let llvm_type_args = fn_call
-                    .parameters
-                    .iter()
-                    .map(|a| self.compile_expr(a).unwrap().val().into())
-                    .collect::<Vec<BasicMetadataValueEnum>>();
-                if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
-                    self.push_scope();
-                    match self
-                        .builder
-                        .build_call(v.0, &llvm_type_args, "")
-                        .try_as_basic_value()
-                    {
-                        Either::Left(val) => {
-                            self.pop_current_scope();
-                            Ok(Value::new(v.1.return_type.clone().unwrap(), val))
-                        }
-                        Either::Right(_) => {
-                            bail!("got right");
-                        }
-                    }
-                } else {
-                    if let Some(f) = self.extern_fns.as_ref().borrow().get(fn_call.name.as_ref()) {
-                        // let gep = self.builder.build_gep(self.ctx.i8_type().array_type(), ptr, ordered_indexes, name)
-                        self.builder.build_call(
-                            *f,
+                    let ptr = unsafe {
+                        self.builder.build_gep(
+                            str_.get_type(),
+                            g_val.as_pointer_value(),
                             &[
-                                // self.builder
-                                // .build_gep(pointee_ty, ptr, ordered_indexes, name),
-                                *llvm_type_args.first().unwrap(),
+                                self.ctx.i32_type().const_int(0, false),
+                                self.ctx.i32_type().const_int(0, false),
                             ],
                             "",
-                        );
-                        // Ok(self.ctx.i8_type().const_int(0, false).into())
-                        unimplemented!("plz implement extern fn call.")
-                    } else {
-                        bail!("function isn't declared yet.");
-                    }
+                        )
+                    };
+                    // let allocated_ptr = self
+                    //     .builder
+                    //     .build_alloca(self.ctx.i8_type().ptr_type(AddressSpace::from(0)), "");
+                    // self.builder.build_store(allocated_ptr, ptr);
+
+                    Ok(Value::new(Type::String, ptr.into()))
                 }
-            }
+            },
+            Expr::Ident(i) => Ok(self.compile_expr_ident(i)?),
+            Expr::Infix(i, l, r) => Ok(self.compile_infix_expr(i, l, r)?),
+            Expr::Call(fn_call) => Ok(self.compile_expr_call(fn_call)?),
             Expr::Prefix(p, expr) => {
                 unimplemented!("plz implement prefix expr compilation ser.")
             }
             Expr::StructInstance(name, fields) => {
-                // FIXME: case where you didn't added some field.
-                let mut values: Vec<BasicValueEnum> = vec![];
-                if let Some((struct_type, struct_)) = self.structs.as_ref().borrow().get(name) {
-                    let fields_stack = struct_.fields.clone();
-                    for (field_name, field_expr) in fields {
-                        let expr_result = self.compile_expr(field_expr)?;
-                        values.push(expr_result.val);
-                        if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
-                            if !(expr_result.ty() != v.1) {
-                                bail!("field {} is expected to have type {:?}.", v.0 .0, &v.1);
-                            }
-                        } else {
-                            bail!(
-                                "field {} is not defined in struct type {}",
-                                field_name.0,
-                                name
-                            );
-                        }
-                    }
-                    Ok(Value {
-                        ty: Type::Struct(Rc::clone(struct_)),
-                        val: struct_type.const_named_struct(&values).into(),
-                    })
-                } else {
-                    bail!("struct {}, is not defined.", name);
+                Ok(self.compile_expr_struct_instance(name, fields)?)
+            }
+            Expr::StructAccessIdent(idents) => self.compile_struct_access_ident(idents),
+            Expr::Ptr(i) => self.compile_expr_ptr(i),
+        }
+    }
+
+    fn compile_expr_ptr(&self, i: &Ident) -> Result<Value<'ctx>> {
+        let scopes = self.scopes.as_ref().borrow();
+        let (ptr, ty_) = scopes
+            .iter()
+            .rev()
+            .find_map(|s| s.get(&i.0))
+            .ok_or(anyhow!("ident `{}` is not defined in current scope.", &i.0))?;
+        if let Type::Ptr(p_ty_) = ty_ {
+            let val = self
+                .builder
+                .build_load(self.get_basic_type_enum(&p_ty_), *ptr, "");
+            Ok(Value {
+                ty: *p_ty_.clone(),
+                val: val,
+            })
+        } else {
+            bail!("not pointer type.");
+        }
+    }
+
+    fn compile_struct_access_ident(&self, idents: &Vec<Rc<str>>) -> Result<Value<'ctx>> {
+        let struct_instance_nm = idents.first().unwrap();
+        let scopes = self.scopes.as_ref().borrow();
+        let (ptr_val, ptr_type) = scopes
+            .iter()
+            .rev()
+            .find_map(|s| s.get(struct_instance_nm))
+            .ok_or_else(|| {
+                anyhow!(
+                    "{}",
+                    TinyError::new_compilation_error(
+                        self.file_path.clone().into(),
+                        format!("struct instance `{}` isn't defined.", struct_instance_nm)
+                    )
+                )
+            })?;
+
+        let struct_nm = match ptr_type {
+            Type::Struct(nm) => Rc::clone(nm),
+            _ => {
+                bail!(
+                    "{}",
+                    TinyError::new_compilation_error(
+                        self.file_path.clone().into(),
+                        format!("pointer type is not struct.")
+                    )
+                )
+            }
+        };
+        let structs = self.structs.as_ref().borrow();
+
+        let struct_ = match structs.get(&struct_nm) {
+            Some(v) => v,
+            _ => {
+                bail!("struct doesn't exists.");
+            }
+        };
+
+        if idents.len() > 2 {
+            bail!("not supprted nested access yet.");
+        }
+        let access_field = idents.last().unwrap();
+        let index = struct_
+            .1
+            .as_ref()
+            .fields
+            .iter()
+            .position(|x| &x.0 .0 == access_field)
+            .ok_or(anyhow!(
+                "field `{}` doesn't exist in the struct defination.",
+                access_field
+            ))?;
+        let field = struct_
+            .1
+            .as_ref()
+            .fields
+            .iter()
+            .find(|x| &x.0 .0 == access_field)
+            .ok_or(anyhow!(
+                "field `{}` doesn't exist in the struct defination.",
+                access_field
+            ))?;
+
+        let ptr = unsafe {
+            self.builder.build_gep(
+                struct_.0,
+                *ptr_val,
+                &[
+                    self.ctx.i32_type().const_int(0, false),
+                    self.ctx.i32_type().const_int(index as u64, false),
+                ],
+                "",
+            )
+        };
+
+        // TODO: use Rc<Type> to reduce .clone()
+        Ok(Value {
+            ty: Type::Ptr(Box::new(field.1.clone())),
+            val: ptr.into(),
+        })
+    }
+
+    fn compile_expr_ident(&self, i: &Ident) -> Result<Value<'ctx>> {
+        if let Some((ptr, ty_)) = self
+            .scopes
+            .as_ref()
+            .borrow()
+            .iter()
+            .rev()
+            .find_map(|s| s.get(&i.0))
+        {
+            match ty_ {
+                Type::Bool => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.bool_type(), *ptr, ""),
+                )),
+                Type::Char => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.i8_type(), *ptr, ""),
+                )),
+                Type::UnsignedInteger => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
+                )),
+                Type::SignedInteger => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(self.ctx.i32_type(), *ptr, ""),
+                )),
+                Type::String => Ok(Value::new(
+                    ty_.clone(),
+                    self.builder.build_load(
+                        self.ctx.i8_type().ptr_type(AddressSpace::default()),
+                        *ptr,
+                        "",
+                    ),
+                )),
+                _ => unimplemented!(),
+            }
+        } else {
+            panic!("ident doesn't exists.")
+        }
+    }
+
+    fn compile_expr_call(&self, fn_call: &FunctionCall) -> Result<Value<'ctx>> {
+        let llvm_type_args = fn_call
+            .parameters
+            .iter()
+            .map(|a| self.compile_expr(a).unwrap().val().into())
+            .collect::<Vec<BasicMetadataValueEnum>>();
+        if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
+            self.push_scope();
+            match self
+                .builder
+                .build_call(v.0, &llvm_type_args, "")
+                .try_as_basic_value()
+            {
+                Either::Left(val) => {
+                    self.pop_current_scope();
+                    Ok(Value::new(v.1.return_type.clone().unwrap(), val))
+                }
+                Either::Right(_) => {
+                    bail!("got right");
                 }
             }
-            _ => unimplemented!(),
+        } else {
+            if let Some((fn_, ext_fun)) =
+                self.extern_fns.as_ref().borrow().get(fn_call.name.as_ref())
+            {
+                // let gep = self.builder.build_gep(self.ctx.i8_type().array_type(), ptr, ordered_indexes, name)
+                let returnd_val = self
+                    .builder
+                    .build_call(*fn_, &llvm_type_args, "")
+                    .try_as_basic_value();
+
+                match returnd_val {
+                    Either::Left(v) => Ok(Value {
+                        ty: ext_fun.return_type.clone().unwrap(),
+                        val: v,
+                    }),
+                    // Either::Right(v) => Ok(Value {
+                    //     ty: ext_fun.return_type.clone().unwrap(),
+                    //     val: v.as_any_value_enum().,
+                    // }),
+                    _ => {
+                        bail!("got right")
+                    }
+                }
+            } else {
+                bail!("function isn't declared yet.");
+            }
+        }
+    }
+
+    // fn get_basic_val_enum_from_any_val_enum(ty: &Type, any: AnyTypeEnum<'ctx>) -> Result<BasicValueEnum<'ctx>> {
+    //     match ty {
+    //         Type::UnsignedInteger => any.into_int_type(),
+    //     }
+    // }
+
+    fn compile_expr_struct_instance(
+        &self,
+        name: &Rc<str>,
+        fields: &Vec<(Ident, Expr)>,
+    ) -> Result<Value<'ctx>> {
+        // FIXME: case where you didn't added some field.
+        let mut values: Vec<BasicValueEnum> = vec![];
+        if let Some((struct_type, struct_)) = self.structs.as_ref().borrow().get(name) {
+            let fields_stack = struct_.fields.clone();
+            for (field_name, field_expr) in fields {
+                let expr_result = self.compile_expr(field_expr)?;
+                values.push(expr_result.val);
+                if let Some(v) = fields_stack.iter().find(|f| &f.0 == field_name) {
+                    if expr_result.ty() != v.1 {
+                        bail!(
+                            "field {} is expected to have type {:?}, got {:?} instead.",
+                            v.0 .0,
+                            &v.1,
+                            expr_result.ty()
+                        );
+                    }
+                } else {
+                    bail!(
+                        "field {} is not defined in struct type {}",
+                        field_name.0,
+                        name
+                    );
+                }
+            }
+            Ok(Value {
+                ty: Type::Struct(Rc::clone(&struct_.name)),
+                val: struct_type.const_named_struct(&values).into(),
+            })
+        } else {
+            bail!("struct {}, is not defined.", name);
         }
     }
 
@@ -433,7 +535,7 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     .i8_type()
                     .ptr_type(AddressSpace::default())
                     .fn_type(&params, false),
-                _ => unimplemented!(),
+                _ => unimplemented!("{:?}", v),
             },
             None => self.ctx.void_type().fn_type(&params, false),
         };
@@ -479,6 +581,20 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                     bail!("Type string with not `ArrayValue`");
                 }
             }
+            Type::Struct(ref name) => {
+                if let Some((struct_type, _)) = self.structs.as_ref().borrow().get(name) {
+                    self.builder
+                        .build_alloca(struct_type.as_basic_type_enum(), "")
+                } else {
+                    bail!("struct {}, is not defined.", name);
+                }
+            }
+            Type::Ptr(ref p) => match p.as_ref() {
+                Type::UnsignedInteger => self
+                    .builder
+                    .build_alloca(self.ctx.i32_type().ptr_type(AddressSpace::from(0)), ""),
+                _ => unimplemented!(),
+            },
             _ => unimplemented!(),
         };
         self.builder.build_store(ptr, val.val());
@@ -486,10 +602,10 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         let mut scopes = self.scopes.as_ref().borrow_mut();
         let c_scope = scopes.last_mut().unwrap();
         if c_scope.contains_key(&i.0) {
-            bail!("already declared in this scope.")
+            bail!("already declared in this scope.");
         }
         // TODO: remove unwrap
-
+        info!("inserted {} with value {:?}", &i.0, (&ptr, ty_));
         c_scope.insert(Rc::clone(&i.0), (ptr, ty_.clone().unwrap()));
         Ok(())
     }
@@ -593,53 +709,35 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         Ok(())
     }
 
-    fn compile_mutate(&self, ident: &Ident, expr: &Expr) -> Result<()> {
+    fn compile_mutate(&self, ident: &Ident, expr: &Expr, is_ptr: bool) -> Result<()> {
         let new_val = self.compile_expr(expr)?;
-
-        if let Some((ptr, ty_)) = self
-            .scopes
-            .as_ref()
-            .borrow()
+        let scopes = self.scopes.as_ref().borrow();
+        let (ptr, ty_) = scopes
             .iter()
             .rev()
             .find_map(|s| s.get(&ident.0))
-        {
+            .ok_or(anyhow!(
+                "ident `{}` is not defined in current scope.",
+                &ident.0
+            ))?;
+
+        if !is_ptr {
             Value::assert_if_not(&new_val.ty(), ty_)?;
             self.builder.build_store(*ptr, new_val.val());
-        }
+        } else {
+            ensure!(ty_.is_ptr(), "type is not pointer.");
+            // Load the pointer from the ident's pointer,
+            let loaded_ptr = self.builder.build_load(
+                self.ctx.i32_type().ptr_type(AddressSpace::from(0)),
+                *ptr,
+                "",
+            );
+            // then build store.
+            self.builder
+                .build_store(loaded_ptr.into_pointer_value(), new_val.val());
+        };
 
         Ok(())
-    }
-
-    fn get_basic_metadata_type_enum(&self, ty: &Type) -> BasicMetadataTypeEnum<'ctx> {
-        match ty {
-            Type::UnsignedInteger => self.ctx.i32_type().into(),
-            Type::SignedInteger => self.ctx.i32_type().into(),
-            Type::Bool => self.ctx.bool_type().into(),
-            Type::Char => self.ctx.i8_type().into(),
-            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
-            Type::Ptr(p) => match p.as_ref() {
-                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
-                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                _ => unimplemented!(),
-            },
-            _ => unimplemented!(),
-        }
-    }
-    fn get_basic_type_enum(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
-        match ty {
-            Type::UnsignedInteger => self.ctx.i32_type().into(),
-            Type::SignedInteger => self.ctx.i32_type().into(),
-            Type::Bool => self.ctx.bool_type().into(),
-            Type::Char => self.ctx.i8_type().into(),
-            Type::String => self.ctx.i8_type().ptr_type(AddressSpace::default()).into(),
-            Type::Ptr(p) => match p.as_ref() {
-                Type::UnsignedInteger => self.ctx.i32_type().ptr_type(AddressSpace::from(0)).into(),
-                Type::Char => self.ctx.i8_type().ptr_type(AddressSpace::from(0)).into(),
-                _ => unimplemented!(),
-            },
-            _ => unimplemented!(),
-        }
     }
 
     fn compile_external_fn(&self, f: &ExternFunction) -> Result<FunctionValue<'ctx>> {
@@ -650,31 +748,31 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .collect::<Vec<_>>();
         let fn_type = match &f.return_type {
             Some(v) => match v {
-                Type::UnsignedInteger => self.ctx.i32_type().fn_type(&params, false),
-                Type::SignedInteger => self.ctx.i32_type().fn_type(&params, false),
-                Type::Bool => self.ctx.i32_type().fn_type(&params, false),
-                Type::Char => self.ctx.i8_type().fn_type(&params, false),
+                Type::UnsignedInteger => self.ctx.i32_type().fn_type(&params, f.is_var),
+                Type::SignedInteger => self.ctx.i32_type().fn_type(&params, f.is_var),
+                Type::Bool => self.ctx.i32_type().fn_type(&params, f.is_var),
+                Type::Char => self.ctx.i8_type().fn_type(&params, f.is_var),
                 Type::String => self
                     .ctx
                     .i8_type()
                     .ptr_type(AddressSpace::default())
-                    .fn_type(&params, false),
+                    .fn_type(&params, f.is_var),
                 Type::Ptr(p) => match p.as_ref() {
                     Type::UnsignedInteger => self
                         .ctx
                         .i32_type()
                         .ptr_type(AddressSpace::from(0))
-                        .fn_type(&params, false),
+                        .fn_type(&params, f.is_var),
                     Type::Char => self
                         .ctx
                         .i8_type()
                         .ptr_type(AddressSpace::from(0))
-                        .fn_type(&params, false),
+                        .fn_type(&params, f.is_var),
                     _ => unimplemented!(),
                 },
                 _ => unimplemented!(),
             },
-            None => self.ctx.void_type().fn_type(&params, false),
+            None => self.ctx.void_type().fn_type(&params, f.is_var),
         };
 
         let fn_val = self
@@ -693,6 +791,26 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 .as_slice(),
             false,
         );
+        self.ctx.struct_type(
+            &struct_
+                .as_ref()
+                .fields
+                .iter()
+                .map(|(_, ty)| self.get_basic_type_enum(ty))
+                .collect::<Vec<_>>(),
+            false,
+        );
+        // let type_alias = self.ctx.opaque_struct_type(&struct_.name);
+        // type_alias.set_body(
+        //     &struct_
+        //         .as_ref()
+        //         .fields
+        //         .iter()
+        //         .map(|(_, ty)| self.get_basic_type_enum(ty))
+        //         .collect::<Vec<_>>(),
+        //     false,
+        // );
+
         self.structs
             .as_ref()
             .borrow_mut()
@@ -720,13 +838,13 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             }
             Statement::If(c) => self.compile_condition(c),
             Statement::While(while_) => self.compile_while(while_),
-            Statement::Mutate(var, expr) => self.compile_mutate(var, expr),
-            Statement::ExterFunction(ex_fun) => {
+            Statement::Mutate(var, expr, is_ptr) => self.compile_mutate(var, expr, *is_ptr),
+            Statement::ExternFunction(ex_fun) => {
                 let fn_ = self.compile_external_fn(ex_fun)?;
                 self.extern_fns
                     .as_ref()
                     .borrow_mut()
-                    .insert(Rc::clone(&ex_fun.name), fn_);
+                    .insert(Rc::clone(&ex_fun.name), (fn_, ex_fun));
                 Ok(())
             }
             Statement::StructDef(s) => self.compile_struct_def(s),
@@ -734,14 +852,30 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     pub fn compile(&'f self) -> Result<String> {
+        let mut have_main = false;
         for stmt in &self.program {
             match &stmt {
-                Statement::Function(_) | Statement::ExterFunction(_) => {}
+                Statement::Function(f) => {
+                    if f.name == "main".into() {
+                        have_main = true;
+                    }
+                }
+                Statement::ExternFunction(_) | Statement::StructDef(_) => {}
                 _ => {
                     bail!("top level statements can't be {:?}", &stmt);
                 }
             };
             self.compile_stmt(stmt)?;
+        }
+
+        if !have_main {
+            bail!(
+                "{}",
+                TinyError::new_compilation_error(
+                    self.file_path.to_string().into(),
+                    "tiny program doesn't have a main function".into()
+                )
+            )
         }
         Ok(self.module.print_to_string().to_string())
     }
@@ -946,6 +1080,8 @@ mod tests {
             "student type: {}",
             student_instance.print_to_string().to_string()
         );
+        let struct_ptr = builder.build_alloca(student_struct, "");
+        builder.build_store(struct_ptr, student_instance);
         // ..
 
         let v = builder.build_int_add(ctx.i64_type().const_int(234, true), temp1, "");

@@ -1,0 +1,21 @@
+/**
+* String implementation in tiny lang.
+**/
+
+struct String {
+    buffer: *i8,
+    length: isize,
+    maxlen: isize,
+    factor: isize,
+};
+
+fun main() => isize {
+    let str = String {
+        buffer: malloc(23),
+        length: 0,
+        maxlen: 0,
+        factor: 0,
+    };
+    str.factor = 34;
+    return 0;
+}
