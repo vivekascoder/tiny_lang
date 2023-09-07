@@ -16,7 +16,7 @@ fun main() => usize {
     *s = 343;
     let v: usize = *s;
     // let ss: string = "this is something";
-    printf("this is a string");
+    printf("this is a string %d", 343);
 
     return 0;
 }
