@@ -65,7 +65,10 @@ fun fibo(num: usize) => usize {
     }
 }
 
-print(fibo(15));
+fun main() => usize {
+    printf("%d", fibo(5));
+    return 0;
+}
 ```
 
 ### For more exmaples.

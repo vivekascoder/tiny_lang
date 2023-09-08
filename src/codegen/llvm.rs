@@ -20,6 +20,7 @@ use inkwell::{
 };
 use inkwell::{AddressSpace, GlobalVisibility, IntPredicate};
 use log::info;
+use std::borrow::BorrowMut;
 use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 #[derive(Debug)]
@@ -374,6 +375,15 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     }
 
     fn compile_expr_ident(&self, i: &Ident) -> Result<Value<'ctx>> {
+        let current_fn = self.current_fn.as_ref().borrow().unwrap();
+        let fns = self.fns.as_ref().borrow();
+        let fn_name = current_fn.0.get_name().to_str()?;
+        let (_, fn_) = fns.get(fn_name).ok_or(anyhow!("function not defined."))?;
+        if let Some((i, v)) = fn_.params.iter().enumerate().find(|v| &v.1 .0 == i) {
+            let arg = current_fn.0.get_nth_param(i as u32).unwrap();
+            return Ok(Value::new(v.1.clone(), arg));
+        }
+
         if let Some((ptr, ty_)) = self
             .scopes
             .as_ref()
@@ -410,18 +420,38 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
                 _ => unimplemented!(),
             }
         } else {
-            panic!("ident doesn't exists.")
+            bail!("ident `{}` doesn't exists.", &i.0);
         }
     }
 
     fn compile_expr_call(&self, fn_call: &FunctionCall) -> Result<Value<'ctx>> {
-        let llvm_type_args = fn_call
+        let fns = self.fns.as_ref().borrow();
+        // let (fn_val, fn_) = fns
+        //     .get(&fn_call.name)
+        //     .ok_or(anyhow!("function `{}` doesn't exists.", &fn_call.name))?;
+
+        let param_values = fn_call
             .parameters
             .iter()
-            .map(|a| self.compile_expr(a).unwrap().val().into())
+            .map(|a| self.compile_expr(a).unwrap())
+            .collect::<Vec<Value>>();
+
+        let llvm_type_args = param_values
+            .iter()
+            .map(|v| v.val().into())
             .collect::<Vec<BasicMetadataValueEnum>>();
         if let Some(v) = self.fns.as_ref().borrow().get(fn_call.name.as_ref()) {
             self.push_scope();
+            // for (index, val) in param_values.iter().enumerate() {
+            //     ensure!(val.ty == fn_.params[index].1, "not same type is passed.");
+            //     self.scopes
+            //         .as_ref()
+            //         .borrow_mut()
+            //         .last()
+            //         .unwrap()
+            //         .insert(Rc::clone(&fn_.params[index].0 .0), (v, val.ty));
+            // }
+
             match self
                 .builder
                 .build_call(v.0, &llvm_type_args, "")
@@ -549,6 +579,10 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             .append_basic_block(fn_val, &main_block_name.as_str());
         self.builder.position_at_end(main_block);
         *self.current_fn.as_ref().borrow_mut() = Some((fn_val, main_block));
+        self.fns
+            .as_ref()
+            .borrow_mut()
+            .insert(Rc::clone(&f.name), (fn_val, f));
 
         for stmt in &f.body {
             self.compile_stmt(stmt)?;
@@ -823,10 +857,6 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         match &stmt {
             Statement::Function(f) => {
                 let fn_val = self.compile_fn(f)?;
-                self.fns
-                    .as_ref()
-                    .borrow_mut()
-                    .insert(Rc::clone(&f.name), (fn_val, f));
 
                 Ok(())
             }
