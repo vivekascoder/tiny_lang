@@ -653,9 +653,9 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         let current_fn_block = current_fn.1.clone();
         let if_block = self.ctx.append_basic_block(current_fn.0, "");
         let mut else_block: Option<BasicBlock<'ctx>> = None;
-        let new_block = self.ctx.append_basic_block(current_fn.0, "");
 
         if cond.else_body.is_none() {
+            let new_block = self.ctx.append_basic_block(current_fn.0, "");
             self.builder.build_conditional_branch(
                 condition.val().into_int_value(),
                 if_block,
@@ -682,12 +682,12 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
         match cond.if_body.last().unwrap() {
             Statement::Return(_) => {}
             _ => {
+                let new_block = self.ctx.append_basic_block(current_fn.0, "");
                 self.builder.build_unconditional_branch(new_block);
+                // create new block for remaining
+                self.builder.position_at_end(new_block);
             }
         };
-
-        // create new block for remaining
-        self.builder.position_at_end(new_block);
 
         // compile else block
         if cond.else_body.is_some() {
@@ -700,10 +700,11 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             match cond.else_body.as_ref().unwrap().last().unwrap() {
                 Statement::Return(_) => {}
                 _ => {
+                    let new_block = self.ctx.append_basic_block(current_fn.0, "");
                     self.builder.build_unconditional_branch(new_block);
+                    self.builder.position_at_end(new_block);
                 }
             };
-            self.builder.position_at_end(new_block);
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
             self.pop_current_scope();
         }
@@ -1117,6 +1118,11 @@ mod tests {
         let v = builder.build_int_add(ctx.i64_type().const_int(234, true), temp1, "");
         builder.build_return(Some(&v));
         println!("{}", module.print_to_string().to_string());
+    }
+
+    #[test]
+    fn test_rust_string_bytes() {
+        println!("{:?}", "vivek".as_bytes())
     }
 
     #[test]

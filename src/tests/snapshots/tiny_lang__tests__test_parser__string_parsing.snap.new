@@ -1,0 +1,20 @@
+---
+source: src/tests/test_parser.rs
+assertion_line: 17
+expression: "Parser::new(\"\", code).parse()"
+---
+Ok(
+    [
+        Let(
+            Ident(
+                "something",
+            ),
+            None,
+            Literal(
+                String(
+                    "vivek",
+                ),
+            ),
+        ),
+    ],
+)
