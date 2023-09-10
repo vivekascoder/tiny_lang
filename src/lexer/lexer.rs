@@ -174,7 +174,7 @@ impl Lexer {
                 loop {
                     self.bump();
                     if self.current() == '\"' {
-                        let val: String = (&self.source[start..self.cur]).iter().collect();
+                        let val: String = (&self.source[start + 1..self.cur]).iter().collect();
                         self.bump();
                         return Ok(self.token(TokenType::String(val.into()), (start, self.cur)));
                     }

@@ -11,6 +11,13 @@ fn test_let_statement_parsing() {
 }
 
 #[test]
+fn test_string_parsing() {
+    setup();
+    let code = r#"let something = "vivek"; "#;
+    insta::assert_debug_snapshot!(Parser::new("", code).parse());
+}
+
+#[test]
 fn test_let_w_type_statement_parsing() {
     setup();
     let code = "let something: isize = 454 + 3 * 4 - 35; ";
