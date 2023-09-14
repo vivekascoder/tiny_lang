@@ -48,7 +48,7 @@ After restarting your VsCode, you'll have tiny lang syntax support.
 
 ## Examples
 
-```
+```rs
 /**
 * calculate sum of fibonacci sequence using tiny lang.
 **/
