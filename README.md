@@ -53,6 +53,8 @@ After restarting your VsCode, you'll have tiny lang syntax support.
 * calculate sum of fibonacci sequence using tiny lang.
 **/
 
+extern fun printf(s: *i8, ...) => usize;
+
 fun fibo(num: usize) => usize {
     if (num == 0) {
         return 0;
