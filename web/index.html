@@ -9,8 +9,69 @@
     <center>
       <h1>Tiny Lang</h1>
     </center>
-    <br /><br />
+    <div align="center">
+      <img src="./logo.webp" alt="Tiny Lang" width="300" />
+    </div>
+
+    <h1 id="tiny-lang">Docs</h1>
     <p>Tiny lang is a toy programming language written to have fun.</p>
+    <h2 id="install">Install</h2>
+    <pre><code class="lang-bash">git <span class="hljs-keyword">clone</span> <span class="hljs-title">https</span>://github.com/vivekascoder/tiny_lang
+    cd tiny_lang
+    cargo install --path .
+    </code></pre>
+    <h2 id="run-program">Run program</h2>
+    <pre><code class="lang-bash">tiny_lang interpret .<span class="hljs-regexp">/examples/m</span>ain.tiny
+    </code></pre>
+    <h2 id="repl">Repl</h2>
+    <pre><code class="lang-bash">tiny_lang repl --with (<span class="hljs-name">ast/lex/interpret</span>)
+    </code></pre>
+    <h2 id="compiler">Compiler</h2>
+    <p>
+      To compile the tiny program into machine code use the following command.
+    </p>
+    <pre><code class="lang-bash">tiny_lang compile ./examples/main<span class="hljs-selector-class">.tiny</span>
+    chmod +x ./<span class="hljs-selector-tag">a</span><span class="hljs-selector-class">.out</span>
+    ./<span class="hljs-selector-tag">a</span>.out
+    </code></pre>
+    <p>
+      🗒️ NOTE: Make sure you have llvm installed in your system along with
+      clang, as we rely on <code>llc</code> and <code>clang</code> to compile.
+    </p>
+    <h2 id="syntax-highlighting-for-tiny-programs">
+      Syntax highlighting for tiny programs
+    </h2>
+    <pre><code>cp -r .<span class="hljs-regexp">/syntax ~/</span>.vscode<span class="hljs-regexp">/extensions/</span>
+    </code></pre>
+    <p>
+      After restarting your VsCode, you&#39;ll have tiny lang syntax support.
+    </p>
+    <h2 id="examples">Examples</h2>
+    <pre><code class="lang-rs"><span class="hljs-comment">/**
+    * calculate sum of fibonacci sequence using tiny lang.
+    **/</span>
+    
+    extern <span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">printf</span><span class="hljs-params">(s: *<span class="hljs-type">i8</span>, ...)</span></span> =&gt; usize;
+    
+    <span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">fibo</span><span class="hljs-params">(num: <span class="hljs-type">usize</span>)</span></span> =&gt; usize {
+        <span class="hljs-keyword">if</span> (num == <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-keyword">if</span> (num == <span class="hljs-number">1</span>) {
+                <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-keyword">return</span> fibo(num - <span class="hljs-number">1</span>) + fibo(num - <span class="hljs-number">2</span>);
+            }
+        }
+    }
+    
+    <span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> =&gt; usize {
+        printf(<span class="hljs-string">"%d"</span>, fibo(<span class="hljs-number">5</span>));
+        <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+    }
+    </code></pre>
+    <h3 id="for-more-exmaples-">For more exmaples.</h3>
+    <p>Check out the <a href="./examples/">examples</a> folder.</p>
 
     <div class="footer">
       <a href="#!">Github</a>
@@ -22,7 +83,9 @@
         display: flex;
         align-items: center;
         justify-content: space-around;
-        margin-top: 2rem;
+        padding: 1rem 0;
+        margin: 1rem 0;
+        border-top: gray 2px solid;
       }
     </style>
   </body>
