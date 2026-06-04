@@ -20,6 +20,13 @@ cargo install --path .
 tiny_lang interpret ./examples/main.tiny
 ```
 
+## Web playground
+
+Tiny Lang also compiles to WebAssembly, so you can write and run Tiny Lang
+programs directly in the browser:
+
+[tiny-lang.vivek.ink](https://tiny-lang.vivek.ink)
+
 ## Repl
 
 ```bash
