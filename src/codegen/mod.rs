@@ -1,3 +1,4 @@
+#[cfg(feature = "llvm")]
 pub mod llvm;
 
 pub trait CodeGen<'a> {

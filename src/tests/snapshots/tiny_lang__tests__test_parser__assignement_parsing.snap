@@ -1,5 +1,6 @@
 ---
 source: src/tests/test_parser.rs
+assertion_line: 196
 expression: "&ast"
 ---
 Ok(
@@ -24,6 +25,7 @@ Ok(
                     0,
                 ),
             ),
+            false,
         ),
         Expr(
             Call(

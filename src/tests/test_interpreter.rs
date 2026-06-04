@@ -99,3 +99,30 @@ fn does_assignment_works() {
     let mut i = Interpreter::new("", code);
     insta::assert_debug_snapshot!(i.eval().unwrap());
 }
+
+#[test]
+fn fibonacci_example_runs_with_printf() {
+    setup();
+    let code = include_str!("../../examples/fibonacci.tiny");
+    let mut i = Interpreter::new("examples/fibonacci.tiny", code);
+
+    assert_eq!(i.eval_with_output().unwrap(), "5");
+}
+
+#[test]
+fn printf_supports_common_placeholders() {
+    setup();
+    let code = r#"
+    extern fun printf(s: *i8, ...) => usize;
+
+    fun main() => usize {
+        printf("count=%d char=%c text=%s %%", 7, 'x', "ok");
+        return 0;
+    }
+
+    main();
+    "#;
+    let mut i = Interpreter::new("printf.tiny", code);
+
+    assert_eq!(i.eval_with_output().unwrap(), "count=7 char=x text=ok %");
+}

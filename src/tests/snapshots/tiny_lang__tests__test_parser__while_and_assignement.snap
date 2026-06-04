@@ -1,5 +1,6 @@
 ---
 source: src/tests/test_parser.rs
+assertion_line: 183
 expression: "&ast"
 ---
 Ok(
@@ -76,6 +77,7 @@ Ok(
                                 ),
                             ),
                         ),
+                        false,
                     ),
                 ],
             },
