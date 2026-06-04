@@ -176,7 +176,6 @@
         width: 100%;
         min-height: 560px;
         border: 0;
-        resize: vertical;
         outline: none;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", monospace;
@@ -185,14 +184,81 @@
         tab-size: 2;
       }
 
-      textarea {
-        display: block;
-        padding: 16px;
-        color: var(--ink);
+      .editor-shell {
+        position: relative;
+        min-height: 560px;
         background: #fffefb;
       }
 
-      pre {
+      .editor-highlight,
+      textarea {
+        position: absolute;
+        inset: 0;
+        min-height: 100%;
+        padding: 16px;
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .editor-highlight {
+        pointer-events: none;
+        color: var(--ink);
+      }
+
+      .editor-highlight code {
+        color: inherit;
+        font: inherit;
+      }
+
+      textarea {
+        display: block;
+        resize: none;
+        color: transparent;
+        caret-color: var(--ink);
+        background: transparent;
+        -webkit-text-fill-color: transparent;
+      }
+
+      textarea::selection {
+        background: rgba(15, 118, 110, 0.22);
+      }
+
+      .tok-comment {
+        color: #7a806f;
+        font-style: italic;
+      }
+
+      .tok-keyword {
+        color: #8b3a62;
+        font-weight: 700;
+      }
+
+      .tok-type {
+        color: #1d6f8f;
+        font-weight: 700;
+      }
+
+      .tok-string,
+      .tok-char {
+        color: #8a5a00;
+      }
+
+      .tok-number {
+        color: #6d4fc2;
+      }
+
+      .tok-function {
+        color: #0d766f;
+        font-weight: 700;
+      }
+
+      .tok-operator {
+        color: #555b52;
+        font-weight: 700;
+      }
+
+      #output {
         padding: 16px;
         overflow: auto;
         white-space: pre-wrap;
@@ -246,7 +312,8 @@
         }
 
         textarea,
-        pre {
+        pre,
+        .editor-shell {
           min-height: 360px;
         }
       }
@@ -295,7 +362,16 @@
             <span>program.tiny</span>
             <button id="reset" type="button" title="Reset example">Reset</button>
           </div>
-          <textarea id="source" spellcheck="false"></textarea>
+          <div class="editor-shell">
+            <pre class="editor-highlight" aria-hidden="true"><code id="highlight"></code></pre>
+            <textarea
+              id="source"
+              spellcheck="false"
+              autocapitalize="off"
+              autocomplete="off"
+              autocorrect="off"
+            ></textarea>
+          </div>
         </div>
         <div class="pane">
           <div class="pane-title">
@@ -456,13 +532,174 @@ fun main() => usize {
       };
 
       const source = document.querySelector("#source");
+      const highlight = document.querySelector("#highlight");
       const output = document.querySelector("#output");
       const status = document.querySelector("#status");
       const select = document.querySelector("#examples");
       const run = document.querySelector("#run");
 
+      const keywords = new Set([
+        "extern",
+        "fun",
+        "let",
+        "return",
+        "if",
+        "else",
+        "while",
+        "struct",
+        "void",
+      ]);
+      const types = new Set([
+        "usize",
+        "isize",
+        "bool",
+        "char",
+        "str",
+        "i8",
+        "true",
+        "false",
+      ]);
+
+      function escapeHtml(value) {
+        return value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function token(className, value) {
+        return `<span class="${className}">${escapeHtml(value)}</span>`;
+      }
+
+      function readWhile(sourceText, start, test) {
+        let end = start;
+        while (end < sourceText.length && test(sourceText[end])) {
+          end += 1;
+        }
+        return end;
+      }
+
+      function highlightTiny(sourceText) {
+        let html = "";
+        let index = 0;
+
+        while (index < sourceText.length) {
+          const char = sourceText[index];
+          const next = sourceText[index + 1];
+
+          if (char === "/" && next === "*") {
+            const end = sourceText.indexOf("*/", index + 2);
+            const value =
+              end === -1
+                ? sourceText.slice(index)
+                : sourceText.slice(index, end + 2);
+            html += token("tok-comment", value);
+            index += value.length;
+            continue;
+          }
+
+          if (char === "/" && next === "/") {
+            const end = sourceText.indexOf("\n", index + 2);
+            const value =
+              end === -1 ? sourceText.slice(index) : sourceText.slice(index, end);
+            html += token("tok-comment", value);
+            index += value.length;
+            continue;
+          }
+
+          if (char === '"') {
+            let end = index + 1;
+            while (end < sourceText.length) {
+              if (sourceText[end] === "\\") {
+                end += 2;
+                continue;
+              }
+              if (sourceText[end] === '"') {
+                end += 1;
+                break;
+              }
+              end += 1;
+            }
+            html += token("tok-string", sourceText.slice(index, end));
+            index = end;
+            continue;
+          }
+
+          if (char === "'") {
+            let end = index + 1;
+            while (end < sourceText.length) {
+              if (sourceText[end] === "\\") {
+                end += 2;
+                continue;
+              }
+              if (sourceText[end] === "'") {
+                end += 1;
+                break;
+              }
+              end += 1;
+            }
+            html += token("tok-char", sourceText.slice(index, end));
+            index = end;
+            continue;
+          }
+
+          if (/[0-9]/.test(char)) {
+            const end = readWhile(sourceText, index, (value) => /[0-9]/.test(value));
+            html += token("tok-number", sourceText.slice(index, end));
+            index = end;
+            continue;
+          }
+
+          if (/[A-Za-z_]/.test(char)) {
+            const end = readWhile(sourceText, index, (value) =>
+              /[A-Za-z0-9_]/.test(value)
+            );
+            const word = sourceText.slice(index, end);
+            let lookahead = end;
+            while (/\s/.test(sourceText[lookahead] ?? "")) {
+              lookahead += 1;
+            }
+
+            if (keywords.has(word)) {
+              html += token("tok-keyword", word);
+            } else if (types.has(word)) {
+              html += token("tok-type", word);
+            } else if (sourceText[lookahead] === "(") {
+              html += token("tok-function", word);
+            } else {
+              html += escapeHtml(word);
+            }
+            index = end;
+            continue;
+          }
+
+          if ("+-*/%=!<>&|^.,:;(){}[]".includes(char)) {
+            html += token("tok-operator", char);
+            index += 1;
+            continue;
+          }
+
+          html += escapeHtml(char);
+          index += 1;
+        }
+
+        return html.endsWith("\n") ? `${html}\n` : html;
+      }
+
+      function updateHighlight() {
+        highlight.innerHTML = highlightTiny(source.value);
+      }
+
+      function syncEditorScroll() {
+        const mirror = highlight.parentElement;
+        mirror.scrollTop = source.scrollTop;
+        mirror.scrollLeft = source.scrollLeft;
+      }
+
       function setExample(name) {
         source.value = examples[name];
+        updateHighlight();
+        syncEditorScroll();
       }
 
       function execute() {
@@ -481,6 +718,8 @@ fun main() => usize {
 
       select.addEventListener("change", () => setExample(select.value));
       document.querySelector("#reset").addEventListener("click", () => setExample(select.value));
+      source.addEventListener("input", updateHighlight);
+      source.addEventListener("scroll", syncEditorScroll);
       document.querySelector("#clear").addEventListener("click", () => {
         output.textContent = "";
         output.classList.remove("error");
