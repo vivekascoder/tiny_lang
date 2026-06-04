@@ -52,6 +52,7 @@ pub enum ExprResult {
     UnsignedInteger(usize),
     SignedInteger(isize),
     Char(char),
+    String(String),
     Return(Box<ExprResult>),
     Void,
 }
@@ -65,6 +66,7 @@ impl Display for ExprResult {
             Self::Void => write!(f, ""),
             Self::Return(v) => write!(f, "{}", *v),
             Self::Char(c) => write!(f, "{}", c),
+            Self::String(s) => write!(f, "{}", s),
         }
     }
 }

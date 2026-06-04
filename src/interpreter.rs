@@ -145,6 +145,9 @@ impl Interpreter {
                     bail!("Types don't match.")
                 }
             }
+            ExprResult::String(_) => {
+                bail!("The infix operator: {:?} doesn't apply to string.", infix);
+            }
             ExprResult::Return(v) => {
                 return Ok(self.eval_infix_expr(
                     infix,
@@ -160,6 +163,7 @@ impl Interpreter {
             ExprResult::Bool(b) => Ok(Expr::Literal(Literal::Bool(b))),
             ExprResult::UnsignedInteger(i) => Ok(Expr::Literal(Literal::UnsignedInteger(i))),
             ExprResult::Char(c) => Ok(Expr::Literal(Literal::Char(c))),
+            ExprResult::String(s) => Ok(Expr::Literal(Literal::String(s.into()))),
             ExprResult::Return(v) => Ok(self.expr_result_to_expr(*v)?),
             _ => {
                 bail!("Can't convert {:?} to Expr", &expr_result);
@@ -193,7 +197,7 @@ impl Interpreter {
             Literal::Bool(b) => Ok(ExprResult::Bool(b)),
             Literal::UnsignedInteger(i) => Ok(ExprResult::UnsignedInteger(i)),
             Literal::Char(c) => Ok(ExprResult::Char(c)),
-            Literal::String(s) => unimplemented!("implement string support in ast interpreter."),
+            Literal::String(s) => Ok(ExprResult::String(s.to_string())),
         }
     }
 
@@ -326,7 +330,10 @@ impl Interpreter {
                     false
                 }
                 Type::String => {
-                    panic!("string is not yet supported in ast interpreter.")
+                    if let ExprResult::String(_) = expr_result {
+                        return true;
+                    }
+                    false
                 }
                 _ => unimplemented!("implement support for ptr type in ast interpreter."),
             },
@@ -403,6 +410,7 @@ impl Interpreter {
                 scope.insert(Rc::clone(&fun.name), MemoryObject::Function(fun));
                 Ok(ExprResult::Void)
             }
+            Statement::ExternFunction(_) => Ok(ExprResult::Void),
             Statement::Return(expr) => {
                 let expr_result = self.eval_expr(expr)?;
                 Ok(ExprResult::Return(Box::new(expr_result)))
@@ -451,13 +459,37 @@ impl Interpreter {
     /// Evaluate the AST
     pub fn eval(&mut self) -> Result<()> {
         let program: Program = self.parser.parse()?;
+        let mut has_main = false;
+        let mut main_called = false;
 
         for statement in program {
+            if let Statement::Function(fun) = &statement {
+                if fun.name.as_ref() == "main" {
+                    has_main = true;
+                }
+            }
+            if let Statement::Expr(Expr::Call(call)) = &statement {
+                if call.name.as_ref() == "main" {
+                    main_called = true;
+                }
+            }
             let r = self.eval_statement(statement)?;
+        }
+
+        if has_main && !main_called {
+            self.eval_fn_call(FunctionCall {
+                name: "main".into(),
+                parameters: vec![],
+            })?;
         }
 
         info!("Env: {:#?}", self.env);
 
         Ok(())
+    }
+
+    pub fn eval_with_output(&mut self) -> Result<String> {
+        self.eval()?;
+        Ok(self.native.output())
     }
 }

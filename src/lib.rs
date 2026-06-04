@@ -8,5 +8,10 @@ pub mod native;
 pub mod parser;
 pub mod repl;
 pub mod scope;
-pub mod tests;
 pub mod tiny_ir;
+
+#[cfg(test)]
+pub mod tests;
+
+#[cfg(feature = "wasm")]
+pub mod wasm;

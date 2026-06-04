@@ -1,11 +1,12 @@
 ---
 source: src/tests/test_lexer.rs
+assertion_line: 22
 expression: "Lexer::new(\"\", source).into_iter().collect::<Vec<Token>>()"
 ---
 [
     Token {
         type_: String(
-            "\"str",
+            "str",
         ),
         pos: (
             0,

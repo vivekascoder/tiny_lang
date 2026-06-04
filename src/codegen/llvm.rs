@@ -21,7 +21,7 @@ use inkwell::{
 use inkwell::{AddressSpace, GlobalVisibility, IntPredicate};
 use log::info;
 use std::borrow::BorrowMut;
-use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, env, fs, path::PathBuf, rc::Rc};
 
 #[derive(Debug)]
 struct Value<'a> {
@@ -66,6 +66,7 @@ struct LLVMCodeGen<'ctx, 'f> {
     structs: Rc<RefCell<HashMap<Rc<str>, (StructType<'ctx>, Rc<Struct>)>>>,
     extern_fns: Rc<RefCell<HashMap<Rc<str>, (FunctionValue<'ctx>, &'f ExternFunction)>>>,
     current_fn: Rc<RefCell<Option<(FunctionValue<'ctx>, BasicBlock<'ctx>)>>>,
+    block_index: RefCell<usize>,
 }
 
 /// # Main codegen part
@@ -83,7 +84,22 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             structs: Rc::new(RefCell::new(HashMap::new())),
             extern_fns: Rc::new(RefCell::new(HashMap::new())),
             current_fn: Rc::new(RefCell::new(None)),
+            block_index: RefCell::new(0),
         }
+    }
+
+    fn next_block_name(&self, prefix: &str) -> String {
+        let mut index = self.block_index.borrow_mut();
+        let name = format!("{prefix}_{index}");
+        *index += 1;
+        name
+    }
+
+    fn current_block_is_terminated(&self) -> bool {
+        self.builder
+            .get_insert_block()
+            .and_then(|block| block.get_terminator())
+            .is_some()
     }
 
     fn get_basic_metadata_type_enum(&self, ty: &Type) -> BasicMetadataTypeEnum<'ctx> {
@@ -608,13 +624,9 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             Type::SignedInteger => self.builder.build_alloca(self.ctx.i32_type(), ""),
             Type::Bool => self.builder.build_alloca(self.ctx.bool_type(), ""),
             Type::Char => self.builder.build_alloca(self.ctx.i8_type(), ""),
-            Type::String => {
-                if let BasicValueEnum::ArrayValue(av) = val.val() {
-                    self.builder.build_alloca(av.get_type(), "")
-                } else {
-                    bail!("Type string with not `ArrayValue`");
-                }
-            }
+            Type::String => self
+                .builder
+                .build_alloca(self.ctx.i8_type().ptr_type(AddressSpace::default()), ""),
             Type::Struct(ref name) => {
                 if let Some((struct_type, _)) = self.structs.as_ref().borrow().get(name) {
                     self.builder
@@ -651,18 +663,21 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
 
         let current_fn = self.current_fn.as_ref().borrow().unwrap();
         let current_fn_block = current_fn.1.clone();
-        let if_block = self.ctx.append_basic_block(current_fn.0, "");
+        let if_block_name = self.next_block_name("if");
+        let if_block = self.ctx.append_basic_block(current_fn.0, &if_block_name);
         let mut else_block: Option<BasicBlock<'ctx>> = None;
 
         if cond.else_body.is_none() {
-            let new_block = self.ctx.append_basic_block(current_fn.0, "");
+            let cont_block_name = self.next_block_name("if_cont");
+            let new_block = self.ctx.append_basic_block(current_fn.0, &cont_block_name);
             self.builder.build_conditional_branch(
                 condition.val().into_int_value(),
                 if_block,
                 new_block,
             );
         } else {
-            else_block = Some(self.ctx.append_basic_block(current_fn.0, ""));
+            let else_block_name = self.next_block_name("else");
+            else_block = Some(self.ctx.append_basic_block(current_fn.0, &else_block_name));
             self.builder.build_conditional_branch(
                 condition.val().into_int_value(),
                 if_block,
@@ -679,15 +694,13 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             self.compile_stmt(stmt)?;
         }
 
-        match cond.if_body.last().unwrap() {
-            Statement::Return(_) => {}
-            _ => {
-                let new_block = self.ctx.append_basic_block(current_fn.0, "");
-                self.builder.build_unconditional_branch(new_block);
-                // create new block for remaining
-                self.builder.position_at_end(new_block);
-            }
-        };
+        if !self.current_block_is_terminated() {
+            let cont_block_name = self.next_block_name("if_cont");
+            let new_block = self.ctx.append_basic_block(current_fn.0, &cont_block_name);
+            self.builder.build_unconditional_branch(new_block);
+            // create new block for remaining
+            self.builder.position_at_end(new_block);
+        }
 
         // compile else block
         if cond.else_body.is_some() {
@@ -697,14 +710,12 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
             for stmt in cond.else_body.as_ref().unwrap() {
                 self.compile_stmt(stmt)?;
             }
-            match cond.else_body.as_ref().unwrap().last().unwrap() {
-                Statement::Return(_) => {}
-                _ => {
-                    let new_block = self.ctx.append_basic_block(current_fn.0, "");
-                    self.builder.build_unconditional_branch(new_block);
-                    self.builder.position_at_end(new_block);
-                }
-            };
+            if !self.current_block_is_terminated() {
+                let cont_block_name = self.next_block_name("else_cont");
+                let new_block = self.ctx.append_basic_block(current_fn.0, &cont_block_name);
+                self.builder.build_unconditional_branch(new_block);
+                self.builder.position_at_end(new_block);
+            }
             self.current_fn.as_ref().borrow_mut().as_mut().unwrap().1 = current_fn_block;
             self.pop_current_scope();
         }
@@ -717,14 +728,17 @@ impl<'ctx, 'f> LLVMCodeGen<'ctx, 'f> {
     fn compile_while(&self, while_: &'f While) -> Result<()> {
         self.push_scope();
         let current_fn = self.current_fn.as_ref().borrow().as_ref().unwrap().0;
-        let loop_cond = self.ctx.append_basic_block(current_fn, "");
+        let loop_cond_name = self.next_block_name("loop_cond");
+        let loop_cond = self.ctx.append_basic_block(current_fn, &loop_cond_name);
         self.builder.build_unconditional_branch(loop_cond);
         self.builder.position_at_end(loop_cond);
         let cond = self.compile_expr(&while_.condition)?;
         Value::assert_if_not(&Type::Bool, &cond.ty())?;
 
-        let loop_body = self.ctx.append_basic_block(current_fn, "");
-        let new_block = self.ctx.append_basic_block(current_fn, "");
+        let loop_body_name = self.next_block_name("loop_body");
+        let loop_body = self.ctx.append_basic_block(current_fn, &loop_body_name);
+        let cont_block_name = self.next_block_name("loop_cont");
+        let new_block = self.ctx.append_basic_block(current_fn, &cont_block_name);
         self.builder
             .build_conditional_branch(cond.val().into_int_value(), loop_body, new_block);
 
@@ -917,7 +931,7 @@ pub fn generate(module_name: &str, program: Program) -> anyhow::Result<()> {
     let llvm = LLVMCodeGen::new(&context, program, module_name);
     fs::write("./a.ll", llvm.compile()?)?;
 
-    let res = std::process::Command::new("llc")
+    let res = std::process::Command::new(llvm_tool("llc"))
         .arg("./a.ll")
         .output()
         .expect("error while compiling using llc");
@@ -929,7 +943,7 @@ pub fn generate(module_name: &str, program: Program) -> anyhow::Result<()> {
         );
     }
 
-    let res = std::process::Command::new("clang")
+    let res = std::process::Command::new(llvm_tool("clang"))
         .arg("./a.s")
         .output()
         .expect("error while running clang");
@@ -945,9 +959,18 @@ pub fn generate(module_name: &str, program: Program) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn llvm_tool(name: &str) -> PathBuf {
+    if let Ok(prefix) = env::var("LLVM_SYS_150_PREFIX") {
+        let tool = PathBuf::from(prefix).join("bin").join(name);
+        if tool.exists() {
+            return tool;
+        }
+    }
+    PathBuf::from(name)
+}
+
 #[cfg(test)]
 mod tests {
-    use env_logger::init;
     use inkwell::{
         context,
         passes::PassManagerSubType,
@@ -979,10 +1002,12 @@ mod tests {
 
     #[test]
     fn test_codegen_function<'a>() {
-        init();
+        let _ = env_logger::builder().is_test(true).try_init();
         let ctx = Context::create();
         let module = "something";
         let source = r#"
+        extern fun printf(s: usize, ...) => usize;
+
         fun main() => usize {
             // let v = "%d\n";
             printf(353);
@@ -997,11 +1022,11 @@ mod tests {
 
     #[test]
     fn test_codegen_str<'a>() {
-        init();
+        let _ = env_logger::builder().is_test(true).try_init();
         let ctx = Context::create();
         let module = "something";
         let source = r#"
-        fun return_something(a: usize) => bool {
+        fun main() => bool {
             let something: bool = false;
             let another_var: usize = 3535 + 35;
             let s: str = "this is a string";
@@ -1169,7 +1194,7 @@ mod tests {
         let hello_string = context.const_string(b"Hello, World!\n", false);
         let g = module.add_global(hello_string.get_type(), Some(AddressSpace::from(0)), "sf");
         // g.set_linkage(Linkage::Internal);
-        g.set_initializer(&g);
+        g.set_initializer(&hello_string);
         let puts_fn = module.add_function("puts", puts_fn_type, None);
 
         builder.build_call(
@@ -1192,6 +1217,7 @@ mod tests {
         builder.build_return(Some(&context.i64_type().const_int(0, false)));
 
         module.verify().expect("module verification error.");
+        std::fs::create_dir_all("./build").unwrap();
         module.print_to_file("./build/something.ll").unwrap();
         println!("LLVM IR:\n{}", module.print_to_string().to_string());
     }

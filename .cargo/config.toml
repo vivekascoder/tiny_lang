@@ -1,0 +1,2 @@
+[env]
+LLVM_SYS_150_PREFIX = { value = "/opt/homebrew/opt/llvm@15", relative = false }

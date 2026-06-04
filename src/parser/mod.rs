@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 pub mod chumsky_parser;
 
 use crate::lexer::lexer::Lexer;

@@ -3,90 +3,502 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tiny Lang</title>
-  </head>
-  <body style="max-width: 40rem; margin: 0 auto">
-    <center>
-      <h1>Tiny Lang</h1>
-    </center>
-    <div align="center">
-      <img src="./logo.webp" alt="Tiny Lang" width="300" />
-    </div>
-
-    <h1 id="tiny-lang">Docs</h1>
-    <p>Tiny lang is a toy programming language written to have fun.</p>
-    <h2 id="install">Install</h2>
-    <pre><code class="lang-bash">git <span class="hljs-keyword">clone</span> <span class="hljs-title">https</span>://github.com/vivekascoder/tiny_lang
-    cd tiny_lang
-    cargo install --path .
-    </code></pre>
-    <h2 id="run-program">Run program</h2>
-    <pre><code class="lang-bash">tiny_lang interpret .<span class="hljs-regexp">/examples/m</span>ain.tiny
-    </code></pre>
-    <h2 id="repl">Repl</h2>
-    <pre><code class="lang-bash">tiny_lang repl --with (<span class="hljs-name">ast/lex/interpret</span>)
-    </code></pre>
-    <h2 id="compiler">Compiler</h2>
-    <p>
-      To compile the tiny program into machine code use the following command.
-    </p>
-    <pre><code class="lang-bash">tiny_lang compile ./examples/main<span class="hljs-selector-class">.tiny</span>
-    chmod +x ./<span class="hljs-selector-tag">a</span><span class="hljs-selector-class">.out</span>
-    ./<span class="hljs-selector-tag">a</span>.out
-    </code></pre>
-    <p>
-      🗒️ NOTE: Make sure you have llvm installed in your system along with
-      clang, as we rely on <code>llc</code> and <code>clang</code> to compile.
-    </p>
-    <h2 id="syntax-highlighting-for-tiny-programs">
-      Syntax highlighting for tiny programs
-    </h2>
-    <pre><code>cp -r .<span class="hljs-regexp">/syntax ~/</span>.vscode<span class="hljs-regexp">/extensions/</span>
-    </code></pre>
-    <p>
-      After restarting your VsCode, you&#39;ll have tiny lang syntax support.
-    </p>
-    <h2 id="examples">Examples</h2>
-    <pre><code class="lang-rs"><span class="hljs-comment">/**
-    * calculate sum of fibonacci sequence using tiny lang.
-    **/</span>
-    
-    extern <span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">printf</span><span class="hljs-params">(s: *<span class="hljs-type">i8</span>, ...)</span></span> =&gt; usize;
-    
-    <span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">fibo</span><span class="hljs-params">(num: <span class="hljs-type">usize</span>)</span></span> =&gt; usize {
-        <span class="hljs-keyword">if</span> (num == <span class="hljs-number">0</span>) {
-            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-        } <span class="hljs-keyword">else</span> {
-            <span class="hljs-keyword">if</span> (num == <span class="hljs-number">1</span>) {
-                <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;
-            } <span class="hljs-keyword">else</span> {
-                <span class="hljs-keyword">return</span> fibo(num - <span class="hljs-number">1</span>) + fibo(num - <span class="hljs-number">2</span>);
-            }
-        }
-    }
-    
-    <span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> =&gt; usize {
-        printf(<span class="hljs-string">"%d"</span>, fibo(<span class="hljs-number">5</span>));
-        <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-    }
-    </code></pre>
-    <h3 id="for-more-exmaples-">For more exmaples.</h3>
-    <p>Check out the <a href="./examples/">examples</a> folder.</p>
-
-    <div class="footer">
-      <a href="#!">Github</a>
-      <a href="#!">Docs</a>
-      <a href="#!">Twitter</a>
-    </div>
+    <title>Tiny Lang Playground</title>
     <style>
-      .footer {
+      :root {
+        color-scheme: light;
+        --bg: #f7f7f2;
+        --panel: #ffffff;
+        --ink: #161817;
+        --muted: #636760;
+        --line: #d7dbd0;
+        --accent: #0f766e;
+        --accent-strong: #134e4a;
+        --output: #101413;
+        --output-text: #d9fff7;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      header {
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar,
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        min-height: 76px;
         display: flex;
         align-items: center;
-        justify-content: space-around;
-        padding: 1rem 0;
-        margin: 1rem 0;
-        border-top: gray 2px solid;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.35rem;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .status {
+        color: var(--muted);
+        font-size: 0.92rem;
+        white-space: nowrap;
+      }
+
+      main {
+        padding: 28px 0 36px;
+      }
+
+      .intro {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .intro h2 {
+        margin: 0 0 8px;
+        font-size: 1.6rem;
+        letter-spacing: 0;
+      }
+
+      .intro p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 62ch;
+        line-height: 1.55;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      button,
+      select {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel);
+        color: var(--ink);
+        font: inherit;
+      }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        cursor: pointer;
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+      }
+
+      button.primary:hover {
+        background: var(--accent-strong);
+      }
+
+      select {
+        padding: 0 36px 0 12px;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.8fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .pane {
+        min-width: 0;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .pane-title {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      textarea,
+      pre {
+        margin: 0;
+        width: 100%;
+        min-height: 560px;
+        border: 0;
+        resize: vertical;
+        outline: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        tab-size: 2;
+      }
+
+      textarea {
+        display: block;
+        padding: 16px;
+        color: var(--ink);
+        background: #fffefb;
+      }
+
+      pre {
+        padding: 16px;
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: var(--output);
+        color: var(--output-text);
+      }
+
+      .error {
+        color: #ffd5cf;
+      }
+
+      .build-note {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      code {
+        color: var(--accent-strong);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+      }
+
+      @media (max-width: 860px) {
+        .topbar,
+        main {
+          width: min(100% - 22px, 1180px);
+        }
+
+        .topbar,
+        .intro {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .intro,
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr auto;
+        }
+
+        select {
+          width: 100%;
+        }
+
+        textarea,
+        pre {
+          min-height: 360px;
+        }
       }
     </style>
+  </head>
+  <body>
+    <header>
+      <div class="topbar">
+        <div class="brand">
+          <img src="./logo.webp" alt="Tiny Lang" />
+          <h1>Tiny Lang Playground</h1>
+        </div>
+        <div class="status" id="status">Loading WASM runtime...</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div>
+          <h2>Write Tiny Lang. Run it in the browser.</h2>
+          <p>
+            The Rust parser and interpreter are compiled to WebAssembly, so
+            programs execute locally in this page and print their output below.
+          </p>
+        </div>
+        <div class="actions">
+          <select id="examples" aria-label="Load example">
+            <option value="fibonacci">Fibonacci</option>
+            <option value="rule30">Rule 30</option>
+            <option value="factorial">Factorial</option>
+            <option value="gcd">GCD</option>
+            <option value="sumSquares">Sum of squares</option>
+            <option value="power">Power</option>
+            <option value="while">While loop</option>
+            <option value="printf">Printf</option>
+          </select>
+          <button class="primary" id="run" type="button" title="Run program">
+            Run
+          </button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="pane">
+          <div class="pane-title">
+            <span>program.tiny</span>
+            <button id="reset" type="button" title="Reset example">Reset</button>
+          </div>
+          <textarea id="source" spellcheck="false"></textarea>
+        </div>
+        <div class="pane">
+          <div class="pane-title">
+            <span>Output</span>
+            <button id="clear" type="button" title="Clear output">Clear</button>
+          </div>
+          <pre id="output">(waiting)</pre>
+        </div>
+      </section>
+
+      <p class="build-note">
+        Build the browser runtime with
+        <code>cargo build --lib --target wasm32-unknown-unknown --no-default-features --features wasm --release</code>
+        and
+        <code>wasm-bindgen --target web --out-dir web/pkg target/wasm32-unknown-unknown/release/tiny_lang.wasm</code>.
+      </p>
+    </main>
+
+    <script type="module">
+      import init, { run_tiny } from "./pkg/tiny_lang.js";
+
+      const examples = {
+        fibonacci: `/**
+* calculate fibonacci using tiny lang.
+**/
+
+extern fun printf(s: *i8, ...) => usize;
+
+fun fibo(num: usize) => usize {
+    if (num == 0) {
+        return 0;
+    } else {
+        if (num == 1) {
+            return 1;
+        } else {
+            return fibo(num - 1) + fibo(num - 2);
+        }
+    }
+}
+
+fun main() => usize {
+    printf("%d", fibo(5));
+    return 0;
+}
+`,
+        rule30: `/**
+* Rule 30 cellular automaton.
+**/
+
+fun main() => void {
+    let state = 1 << 15;
+    let row = 0;
+
+    while (row < 12) {
+        print(state);
+        print('\\n');
+
+        let left = state << 1;
+        let right = state >> 1;
+        let neighbors = state | right;
+        state = left ^ neighbors;
+        row = row + 1;
+    }
+}
+`,
+        factorial: `extern fun printf(s: *i8, ...) => usize;
+
+fun factorial(num: usize) => usize {
+    let result = 1;
+    let current = 2;
+
+    while (current < 7) {
+        result = result * current;
+        current = current + 1;
+    }
+
+    return result;
+}
+
+fun main() => usize {
+    printf("factorial(6) = %d", factorial(6));
+    return 0;
+}
+`,
+        gcd: `extern fun printf(s: *i8, ...) => usize;
+
+fun gcd(a: usize, b: usize) => usize {
+    while (a != b) {
+        if (a > b) {
+            a = a - b;
+        } else {
+            b = b - a;
+        }
+    }
+
+    return a;
+}
+
+fun main() => usize {
+    printf("gcd(84, 30) = %d", gcd(84, 30));
+    return 0;
+}
+`,
+        sumSquares: `extern fun printf(s: *i8, ...) => usize;
+
+fun sum_of_squares(limit: usize) => usize {
+    let total = 0;
+    let i = 1;
+
+    let stop = limit + 1;
+
+    while (i < stop) {
+        total = total + i * i;
+        i = i + 1;
+    }
+
+    return total;
+}
+
+fun main() => usize {
+    printf("1^2 + ... + 5^2 = %d", sum_of_squares(5));
+    return 0;
+}
+`,
+        power: `extern fun printf(s: *i8, ...) => usize;
+
+fun pow(base: usize, exp: usize) => usize {
+    let result = 1;
+    let i = 0;
+
+    while (i < exp) {
+        result = result * base;
+        i = i + 1;
+    }
+
+    return result;
+}
+
+fun main() => usize {
+    printf("3^4 = %d", pow(3, 4));
+    return 0;
+}
+`,
+        while: `let i = 0;
+
+while (i < 5) {
+    print(i);
+    i = i + 1;
+}
+`,
+        printf: `extern fun printf(s: *i8, ...) => usize;
+
+fun main() => usize {
+    printf("answer=%d char=%c text=%s", 42, 't', "tiny");
+    return 0;
+}
+`,
+      };
+
+      const source = document.querySelector("#source");
+      const output = document.querySelector("#output");
+      const status = document.querySelector("#status");
+      const select = document.querySelector("#examples");
+      const run = document.querySelector("#run");
+
+      function setExample(name) {
+        source.value = examples[name];
+      }
+
+      function execute() {
+        output.classList.remove("error");
+        try {
+          const result = run_tiny(source.value);
+          output.textContent = result;
+          if (result.startsWith("error:")) {
+            output.classList.add("error");
+          }
+        } catch (error) {
+          output.textContent = error instanceof Error ? error.message : String(error);
+          output.classList.add("error");
+        }
+      }
+
+      select.addEventListener("change", () => setExample(select.value));
+      document.querySelector("#reset").addEventListener("click", () => setExample(select.value));
+      document.querySelector("#clear").addEventListener("click", () => {
+        output.textContent = "";
+        output.classList.remove("error");
+      });
+      run.addEventListener("click", execute);
+
+      setExample("fibonacci");
+      try {
+        await init();
+        status.textContent = "WASM runtime ready";
+        execute();
+      } catch (error) {
+        status.textContent = "WASM runtime missing";
+        output.textContent =
+          "Build web/pkg first, then serve the web folder over HTTP.";
+        output.classList.add("error");
+        run.disabled = true;
+      }
+    </script>
   </body>
 </html>

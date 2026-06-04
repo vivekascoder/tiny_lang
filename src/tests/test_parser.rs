@@ -1,4 +1,3 @@
-use env_logger::init;
 use log::info;
 
 use crate::{parser::Parser, tests::setup};
@@ -74,7 +73,7 @@ fn test_function_parsing() {
 
 #[test]
 fn test_struct_parsing() {
-    init();
+    setup();
     let code = r#"
     struct something {
         name: str,
@@ -87,7 +86,7 @@ fn test_struct_parsing() {
 
 #[test]
 fn test_struct_instance_parsing() {
-    init();
+    setup();
     let code = r#"
     struct Something {
         name: usize,
