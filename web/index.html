@@ -280,6 +280,27 @@
         line-height: 1.5;
       }
 
+      .site-footer {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 0 0 28px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .site-footer a {
+        color: var(--accent-strong);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      .site-footer a:hover {
+        color: var(--accent);
+      }
+
       code {
         color: var(--accent-strong);
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
@@ -288,7 +309,8 @@
 
       @media (max-width: 860px) {
         .topbar,
-        main {
+        main,
+        .site-footer {
           width: min(100% - 22px, 1180px);
         }
 
@@ -391,6 +413,11 @@
         <code>wasm-bindgen --target web --out-dir web/pkg target/wasm32-unknown-unknown/release/tiny_lang.wasm</code>.
       </p>
     </main>
+
+    <footer class="site-footer">
+      <a href="https://github.com/vivekascoder/tiny_lang" target="_blank" rel="noreferrer">GitHub</a>
+      <a href="https://vivek.ink" target="_blank" rel="noreferrer">vivek.ink</a>
+    </footer>
 
     <script type="module">
       import init, { run_tiny } from "./pkg/tiny_lang.js";
