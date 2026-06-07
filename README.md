@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="./docs/logo.webp" alt="Tiny Lang" width="300">
+    <img src="./docs/header.png" alt="Tiny Lang" width="300">
 </div>
 
 # Tiny Lang
