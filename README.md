@@ -85,6 +85,44 @@ fun main() => usize {
 }
 ```
 
+
+```rs
+/**
+* Implementation of rule 30 in tiny lang.
+**/
+
+fun main() => void {
+    let state = 1 << 31;
+
+    let i = 0;
+    while (i < 32) {
+        let j = 64;
+
+        while (j > 0) {
+            let condition = state >> j & 1;
+            // print(condition); print('\t');
+            if (condition > 0) {
+                // print('O');
+            } else {
+                // print('X');
+            }
+            j = j - 1;
+        }
+
+        print('\n');
+        let a = state >> 1;
+        let b = state | state << 1;
+        state = a ^ b;
+        print(state);
+        print('\n');
+
+        i = i + 1;
+    }
+} 
+
+main();
+```
+
 ### For more exmaples.
 
 Check out the [examples](./examples/) folder.
